@@ -53,6 +53,12 @@
     .neon-border { box-shadow: 0 0 15px rgba(168, 85, 247, 0.2), inset 0 0 15px rgba(168, 85, 247, 0.1); }
     .neon-border-green { box-shadow: 0 0 15px rgba(34, 197, 94, 0.2), inset 0 0 15px rgba(34, 197, 94, 0.1); }
     .neon-border-blue { box-shadow: 0 0 15px rgba(59, 130, 246, 0.3), inset 0 0 15px rgba(59, 130, 246, 0.15); }
+    
+    /* Custom Checkbox style */
+    .custom-checkbox { accent-color: #8b5cf6; width: 18px; height: 18px; cursor: pointer; border-radius: 4px; }
+    
+    /* Table Row Out Animation */
+    .row-deleting { transform: scale(0.95); opacity: 0; pointer-events: none; }
   </style>
 </head>
 <body class="bg-gray-950 text-gray-100 min-h-screen font-sans flex flex-col overflow-x-hidden relative selection:bg-purple-500 selection:text-white">
@@ -148,15 +154,12 @@
       
       <!-- Top Scoreboard & Health Bar -->
       <div class="bg-gray-900/60 backdrop-blur-md border border-gray-800/80 rounded-2xl p-4 flex items-center justify-between">
-        <!-- Hearts System (5 lives) -->
         <div class="flex items-center space-x-2">
           <div class="text-xs text-gray-400 font-mono tracking-wider mr-1">LIVES:</div>
           <div id="heart-container" class="flex space-x-1.5">
             <!-- Dynamic Hearts -->
           </div>
         </div>
-
-        <!-- Score display -->
         <div class="text-right">
           <p class="text-xs text-gray-400 font-mono tracking-wider uppercase">Current Score</p>
           <p id="game-score" class="text-2xl font-black text-yellow-400 font-mono">00000</p>
@@ -165,7 +168,6 @@
 
       <!-- Combo and Energy Display Layer -->
       <div class="flex items-center space-x-4">
-        <!-- Combo Counter -->
         <div class="bg-gradient-to-r from-pink-500/10 to-purple-500/10 border border-purple-500/20 rounded-2xl px-4 py-3 flex items-center space-x-2 relative overflow-hidden flex-1 select-none">
           <span class="text-2xl">🔥</span>
           <div>
@@ -173,8 +175,6 @@
             <p class="text-[10px] text-purple-300 uppercase tracking-widest font-mono">Combo Power-up</p>
           </div>
         </div>
-
-        <!-- Score Multiplier Badge -->
         <div id="multiplier-badge" class="bg-gray-900/60 border border-gray-800 rounded-2xl px-5 py-3 text-center min-w-[80px] transition-all">
           <p class="text-[10px] text-gray-400 uppercase tracking-widest font-mono">Multiplier</p>
           <p id="multiplier-text" class="text-xl font-black text-purple-400 font-mono">1.0X</p>
@@ -190,12 +190,10 @@
       <!-- MAIN TRIVIA CARD -->
       <div id="trivia-card" class="bg-gray-900/80 border border-gray-800/80 rounded-3xl p-6 relative overflow-hidden transition-all duration-300 flex flex-col space-y-6">
         
-        <!-- Supercharged state layer -->
         <div id="supercharged-alert" class="absolute inset-x-0 top-0 bg-gradient-to-r from-blue-600/90 to-purple-600/90 py-1.5 px-4 text-center text-xs font-black tracking-widest uppercase text-white animate-pulse transform -translate-y-full transition-transform">
           ⚡ EXTREME ENERGY MODE! SCORE X2! ⚡
         </div>
 
-        <!-- Question Mode Header Indicator -->
         <div class="flex items-center justify-between border-b border-gray-800 pb-4">
           <span id="question-type-badge" class="text-xs bg-purple-500/20 text-purple-300 font-bold px-3 py-1 rounded-full border border-purple-500/30 uppercase tracking-widest font-mono">
             克漏字句子填空
@@ -205,8 +203,7 @@
           </span>
         </div>
 
-        <!-- The core Question / Word Prompt -->
-        <div class="min-h-[100px] flex flex-col justify-center items-center text-center">
+        <div class="min-h-[100px] flex flex-col justify-center items-center text-center relative z-10">
           <p id="question-prompt" class="text-xl sm:text-2xl font-bold leading-relaxed max-w-lg mx-auto text-gray-100 select-none">
             載入中...
           </p>
@@ -216,13 +213,8 @@
         </div>
 
         <!-- Interactive Answer Entry Formats -->
-        <div>
-          <!-- FORMAT A: Multiple Choice Buttons -->
-          <div id="answer-options-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-            <!-- Dynamically populated buttons -->
-          </div>
-
-          <!-- FORMAT B: Direct text spelling input -->
+        <div class="relative z-10">
+          <div id="answer-options-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3.5"></div>
           <div id="spelling-input-zone" class="space-y-4 hidden">
             <div class="relative">
               <input type="text" id="spelling-field" autocomplete="off" placeholder="在此輸入英文拼音 (不分大小寫)..." class="w-full bg-gray-950 border-2 border-gray-800 rounded-2xl px-5 py-4 text-center text-lg font-bold tracking-widest text-purple-300 placeholder:text-gray-600 focus:outline-none focus:border-purple-500 transition-colors uppercase">
@@ -295,11 +287,11 @@
           <div>
             <span class="bg-purple-500/10 text-purple-300 font-bold border border-purple-500/30 rounded-full px-3 py-1 text-xs tracking-wider uppercase font-mono">星際考情控制中心</span>
             <h2 class="text-2xl font-black mt-2 tracking-wide text-white">親愛的哥哥/老師，您好！</h2>
-            <p class="text-sm text-gray-400 mt-1">此處已即時連接 KET 資料庫，弟弟答完測驗後，您可以第一時間掌握他的複習成效。</p>
+            <p class="text-sm text-gray-400 mt-1">此處已即時連接 KET 資料庫，您可以一鍵匯出報告，或管理錯題紀錄。</p>
           </div>
           <div class="flex flex-col sm:flex-row gap-3 self-start md:self-auto w-full md:w-auto">
             <button id="admin-clear-records-btn" class="bg-red-900/40 hover:bg-red-600/80 border border-red-500/50 text-red-300 hover:text-white font-bold px-4 py-3 rounded-2xl flex items-center justify-center space-x-2 text-sm transition-colors shadow-lg">
-              <i class="fa-solid fa-trash-can"></i><span>清空紀錄</span>
+              <i class="fa-solid fa-trash-can"></i><span>清空所有紀錄</span>
             </button>
             <button id="admin-switch-to-game-btn" class="bg-purple-600 hover:bg-purple-500 text-white font-bold px-5 py-3 rounded-2xl flex items-center justify-center space-x-2 text-sm shadow-lg shadow-purple-600/10 transition-colors">
               <i class="fa-solid fa-play"></i><span>進入遊戲測試</span>
@@ -309,10 +301,10 @@
       </div>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="bg-gray-900/40 border border-gray-800 rounded-2xl p-5"><div class="flex items-center justify-between"><span class="text-xs text-gray-400 font-mono">活躍考生人數</span><div class="text-purple-400 p-2 bg-purple-500/10 rounded-xl"><i class="fa-solid fa-users text-sm"></i></div></div><p id="widget-players" class="text-3xl font-extrabold mt-3 text-white">--</p></div>
-        <div class="bg-gray-900/40 border border-gray-800 rounded-2xl p-5"><div class="flex items-center justify-between"><span class="text-xs text-gray-400 font-mono">總測驗場次</span><div class="text-blue-400 p-2 bg-blue-500/10 rounded-xl"><i class="fa-solid fa-chart-bar text-sm"></i></div></div><p id="widget-total-games" class="text-3xl font-extrabold mt-3 text-white">--</p></div>
-        <div class="bg-gray-900/40 border border-gray-800 rounded-2xl p-5"><div class="flex items-center justify-between"><span class="text-xs text-gray-400 font-mono">歷史最高記錄</span><div class="text-yellow-400 p-2 bg-yellow-500/10 rounded-xl"><i class="fa-solid fa-crown text-sm"></i></div></div><p id="widget-high-score" class="text-3xl font-extrabold mt-3 text-white">--</p></div>
-        <div class="bg-gray-900/40 border border-gray-800 rounded-2xl p-5"><div class="flex items-center justify-between"><span class="text-xs text-gray-400 font-mono">平均分</span><div class="text-green-400 p-2 bg-green-500/10 rounded-xl"><i class="fa-solid fa-calculator text-sm"></i></div></div><p id="widget-average" class="text-3xl font-extrabold mt-3 text-white">--</p></div>
+        <div class="bg-gray-900/40 border border-gray-800 rounded-2xl p-5"><div class="flex items-center justify-between"><span class="text-xs text-gray-400 font-mono">活躍考生人數</span><div class="text-purple-400 p-2 bg-purple-500/10 rounded-xl"><i class="fa-solid fa-users text-sm"></i></div></div><p id="widget-players" class="text-3xl font-extrabold mt-3 text-white">0</p></div>
+        <div class="bg-gray-900/40 border border-gray-800 rounded-2xl p-5"><div class="flex items-center justify-between"><span class="text-xs text-gray-400 font-mono">總測驗場次</span><div class="text-blue-400 p-2 bg-blue-500/10 rounded-xl"><i class="fa-solid fa-chart-bar text-sm"></i></div></div><p id="widget-total-games" class="text-3xl font-extrabold mt-3 text-white">0</p></div>
+        <div class="bg-gray-900/40 border border-gray-800 rounded-2xl p-5"><div class="flex items-center justify-between"><span class="text-xs text-gray-400 font-mono">歷史最高記錄</span><div class="text-yellow-400 p-2 bg-yellow-500/10 rounded-xl"><i class="fa-solid fa-crown text-sm"></i></div></div><p id="widget-high-score" class="text-3xl font-extrabold mt-3 text-white">0</p></div>
+        <div class="bg-gray-900/40 border border-gray-800 rounded-2xl p-5"><div class="flex items-center justify-between"><span class="text-xs text-gray-400 font-mono">平均分</span><div class="text-green-400 p-2 bg-green-500/10 rounded-xl"><i class="fa-solid fa-calculator text-sm"></i></div></div><p id="widget-average" class="text-3xl font-extrabold mt-3 text-white">0</p></div>
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -335,14 +327,34 @@
       </div>
 
       <div class="bg-gray-900/40 border border-gray-800 rounded-3xl p-6">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
           <h3 class="text-base font-bold text-gray-200">實時答題歷史明細</h3>
-          <input type="text" id="admin-search-field" placeholder="搜尋考生姓名或信箱..." class="max-w-xs w-full bg-gray-950 border border-gray-800 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-purple-500">
+          <div class="flex items-center space-x-2 w-full sm:w-auto">
+            <input type="text" id="admin-search-field" placeholder="搜尋姓名或信箱..." class="max-w-xs w-full bg-gray-950 border border-gray-800 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-purple-500 transition-colors">
+            <button onclick="exportAllRecords('pdf')" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl text-sm font-bold flex-shrink-0 transition-colors shadow-lg shadow-blue-500/20" title="一鍵匯出所有紀錄至 PDF">
+              <i class="fa-solid fa-file-export mr-1"></i>匯出全部
+            </button>
+          </div>
         </div>
+
+        <!-- Sticky Action Bar for Selections -->
+        <div id="admin-action-bar" class="hidden bg-gray-900 border border-purple-500/40 px-5 py-3 rounded-2xl mb-4 items-center justify-between transition-all duration-300 shadow-xl shadow-purple-900/10">
+           <div class="flex items-center">
+             <span class="text-white font-bold text-sm">已選取 <span id="selected-count" class="text-yellow-400 text-base mx-1">0</span> 項</span>
+             <span class="text-gray-400 text-xs ml-4 border-l border-gray-700 pl-4">共包含 <span id="selected-wrong-count" class="text-red-400 font-bold mx-1 text-sm">0</span> 個錯題</span>
+           </div>
+           <div class="flex space-x-2">
+             <button onclick="deleteSelected()" class="bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white px-3 py-1.5 rounded-lg text-sm font-bold transition-colors"><i class="fa-solid fa-trash mr-1.5"></i>刪除</button>
+             <button onclick="exportSelected('docx')" class="bg-blue-500/10 text-blue-300 hover:bg-blue-500 hover:text-white px-3 py-1.5 rounded-lg text-sm font-bold transition-colors"><i class="fa-solid fa-file-word mr-1.5"></i>DOCX</button>
+             <button onclick="exportSelected('pdf')" class="bg-green-500/10 text-green-300 hover:bg-green-500 hover:text-white px-3 py-1.5 rounded-lg text-sm font-bold transition-colors"><i class="fa-solid fa-file-pdf mr-1.5"></i>PDF</button>
+           </div>
+        </div>
+
         <div class="overflow-x-auto rounded-2xl border border-gray-800 bg-gray-950/20">
           <table class="w-full text-left text-sm whitespace-nowrap">
             <thead class="bg-gray-900/60 text-xs text-gray-400 font-mono">
               <tr>
+                <th class="p-4 w-10"><input type="checkbox" id="chk-all" onclick="toggleSelectAll()" class="custom-checkbox"></th>
                 <th class="p-4">考生姓名</th>
                 <th class="p-4">信箱</th>
                 <th class="p-4 text-center">得分</th>
@@ -359,7 +371,7 @@
       </div>
     </section>
 
-    <!-- CUSTOM CONFIRMATION MODAL FOR CLEARING RECORDS -->
+    <!-- CUSTOM CONFIRMATION MODAL FOR CLEARING ALL RECORDS -->
     <div id="clear-confirm-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300">
       <div class="bg-gray-900 border border-red-900/50 rounded-3xl p-6 max-w-sm w-full mx-4 transform scale-95 transition-transform duration-300 shadow-2xl shadow-red-900/20">
         <div class="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-500/20">
@@ -393,22 +405,20 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, collection, addDoc, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
     // ----------------------------------------------------
     // CONSTANTS & GAME STATE
     // ----------------------------------------------------
     const adminEmail = 'ianw.solar@gmail.com';
-    const appId = 'ket-vocabulary-stellar'; // Used for Firestore Paths
+    const appId = 'ket-vocabulary-stellar';
     const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/1KtTrHkA_rtUMZ1HZ6ylcbFzNypBUwEdRyz_ilyIFV8A/export?format=csv";
 
-    // Global variable definitions
     let db = null;
     let auth = null;
     let isOfflineMode = false;
     let vocabularyList = [];
 
-    // The essential game state object
     const gameState = {
       user: null,
       currentView: 'signin',
@@ -427,16 +437,18 @@
       rawAttemptHistory: [],
       unansweredWords: [],
       wrongWordsPool: [],
-      isTransitioning: false, // 換題防連點鎖
-      isGameOver: false       // 結算防重複鎖
+      isTransitioning: false,
+      isGameOver: false,
+      // Admin Selections State
+      selectedIds: new Set(),
+      visibleIds: [] // Currently filtered table rows
     };
 
     function getBaseTranslation(text) {
-      // 確保完全去除括號及內部的所有內容，留下純粹的中文解釋
+      if (!text) return '';
       return text.split('(')[0].split('（')[0].trim();
     }
 
-    // DOM Elements Map
     const views = {
       signin: document.getElementById('view-signin'),
       gameplay: document.getElementById('view-gameplay'),
@@ -447,7 +459,6 @@
     // ----------------------------------------------------
     // GOOGLE SHEETS DYNAMIC FETCH
     // ----------------------------------------------------
-    // A robust CSV parser to handle sentences with commas
     function parseCSVLine(text) {
       let p = '', row = [''], ret = [row], i = 0, r = 0, s = !0, l;
       for (l of text) {
@@ -476,10 +487,8 @@
         const rows = parseCSVLine(csvText);
         
         vocabularyList = [];
-        // Skip header row
         for (let i = 1; i < rows.length; i++) {
           const row = rows[i];
-          // Check if row has valid data: Col A (Word), Col B (Clue), Col C (Translation)
           if (row.length >= 3 && row[0].trim() !== '') {
             vocabularyList.push({
               word: row[0].trim(),
@@ -491,12 +500,9 @@
         
         if (vocabularyList.length < 5) throw new Error("單字數量過少");
         document.getElementById('vocab-status-text').innerText = `已載入 ${vocabularyList.length} 個單字`;
-        console.log(`✅ 雲端題庫載入成功：共 ${vocabularyList.length} 題`);
-
       } catch (error) {
         console.error("❌ 讀取 Google Sheet 失敗，使用備用單字庫", error);
         document.getElementById('vocab-status-text').innerText = "使用離線備用題庫";
-        // Fallback Database to prevent game breaking
         vocabularyList = [
           { word: "ability", clue: "She has the _____ to speak fluently.", translation: "能力" },
           { word: "abroad", clue: "My brother wants to study _____.", translation: "在國外" },
@@ -506,17 +512,14 @@
         ];
       }
 
-      // Hide loading after finished
       document.getElementById('loading-overlay').classList.add('opacity-0');
       setTimeout(() => document.getElementById('loading-overlay').classList.add('hidden'), 500);
 
-      // Navigate properly if user is already logged in
       if (gameState.user && gameState.user.email !== adminEmail) {
         resetGameState();
         navigateToView('gameplay');
       }
     }
-
 
     // ----------------------------------------------------
     // FIREBASE INITIALIZATION
@@ -549,16 +552,11 @@
       playCorrect(combo = 0) {
         this.init(); if (!this.audioCtx) return;
         const now = this.audioCtx.currentTime;
-        const osc1 = this.audioCtx.createOscillator();
-        const osc2 = this.audioCtx.createOscillator();
-        const gainNode = this.audioCtx.createGain();
-        osc1.connect(gainNode); osc2.connect(gainNode); gainNode.connect(this.audioCtx.destination);
-        const baseFreq = 523.25; 
+        const osc1 = this.audioCtx.createOscillator(); const osc2 = this.audioCtx.createOscillator();
+        const gainNode = this.audioCtx.createGain(); osc1.connect(gainNode); osc2.connect(gainNode); gainNode.connect(this.audioCtx.destination);
         const factor = 1 + (combo * 0.08);
-        const f1 = baseFreq * factor; const f2 = baseFreq * 1.5 * factor;
-        osc1.type = 'sine'; osc2.type = 'sine';
-        osc1.frequency.setValueAtTime(f1, now); osc1.frequency.exponentialRampToValueAtTime(f1 * 2, now + 0.15);
-        osc2.frequency.setValueAtTime(f2, now); osc2.frequency.exponentialRampToValueAtTime(f2 * 2, now + 0.2);
+        osc1.frequency.setValueAtTime(523.25 * factor, now); osc1.frequency.exponentialRampToValueAtTime(1046.5 * factor, now + 0.15);
+        osc2.frequency.setValueAtTime(784.88 * factor, now); osc2.frequency.exponentialRampToValueAtTime(1569.76 * factor, now + 0.2);
         gainNode.gain.setValueAtTime(0.12, now); gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
         osc1.start(now); osc2.start(now); osc1.stop(now + 0.35); osc2.stop(now + 0.35);
       }
@@ -603,7 +601,7 @@
       playFanfare() {
         this.init(); if (!this.audioCtx) return;
         const now = this.audioCtx.currentTime;
-        const chords = [261.63, 329.63, 392.00, 523.25]; // C major notes
+        const chords = [261.63, 329.63, 392.00, 523.25];
         chords.forEach((freq, idx) => {
           const osc = this.audioCtx.createOscillator(); const gainNode = this.audioCtx.createGain();
           osc.connect(gainNode); gainNode.connect(this.audioCtx.destination);
@@ -620,73 +618,53 @@
         this.canvas = canvas; this.ctx = canvas.getContext('2d'); this.particles = [];
         this.resize(); window.addEventListener('resize', () => this.resize());
       }
-      resize() {
-        this.canvas.width = window.innerWidth;
-        this.canvas.height = window.innerHeight;
-      }
+      resize() { this.canvas.width = window.innerWidth; this.canvas.height = window.innerHeight; }
       addCorrectBurst(x, y) {
         for (let i = 0; i < 25; i++) {
-          const angle = Math.random() * Math.PI * 2;
-          const speed = Math.random() * 4 + 2;
+          const angle = Math.random() * Math.PI * 2; const speed = Math.random() * 4 + 2;
           this.particles.push({
-            x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed - 1,
-            radius: Math.random() * 3.5 + 1.5,
-            color: `hsla(${Math.random() * 20 + 40}, 100%, 60%, ${Math.random() * 0.5 + 0.5})`, // Golden yellow
-            life: 1.0, decay: Math.random() * 0.03 + 0.015, gravity: 0.08
+            x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed - 1, radius: Math.random() * 3.5 + 1.5,
+            color: `hsla(${Math.random() * 20 + 40}, 100%, 60%, ${Math.random() * 0.5 + 0.5})`, life: 1.0, decay: Math.random() * 0.03 + 0.015, gravity: 0.08
           });
         }
       }
       addWrongBurst(x, y) {
         for (let i = 0; i < 25; i++) {
-          const angle = Math.random() * Math.PI * 2;
-          const speed = Math.random() * 5 + 1.5;
+          const angle = Math.random() * Math.PI * 2; const speed = Math.random() * 5 + 1.5;
           this.particles.push({
-            x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
-            radius: Math.random() * 4.5 + 2,
-            color: `hsla(${Math.random() * 20}, 100%, 50%, ${Math.random() * 0.5 + 0.5})`, // Flame orange
-            life: 1.0, decay: Math.random() * 0.02 + 0.015, gravity: 0.05
+            x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, radius: Math.random() * 4.5 + 2,
+            color: `hsla(${Math.random() * 20}, 100%, 50%, ${Math.random() * 0.5 + 0.5})`, life: 1.0, decay: Math.random() * 0.02 + 0.015, gravity: 0.05
           });
         }
       }
       addHeartExplosion(x, y) {
         for (let i = 0; i < 15; i++) {
-          const angle = Math.random() * Math.PI * 2;
-          const speed = Math.random() * 3 + 1;
+          const angle = Math.random() * Math.PI * 2; const speed = Math.random() * 3 + 1;
           this.particles.push({
-            x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
-            radius: Math.random() * 5 + 3, color: '#ef4444',
+            x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, radius: Math.random() * 5 + 3, color: '#ef4444',
             life: 1.0, decay: 0.025, gravity: 0.1, isHeart: true
           });
         }
       }
       addSuperchargeAmbience() {
-        const borderX = window.innerWidth * (0.2 + Math.random() * 0.6);
-        const borderY = window.innerHeight * (0.15 + Math.random() * 0.7);
         this.particles.push({
-          x: borderX, y: borderY, vx: (Math.random() - 0.5) * 1.5, vy: -Math.random() * 1.5 - 0.5,
-          radius: Math.random() * 2.5 + 1,
-          color: `hsla(${Math.random() * 20 + 200}, 100%, 70%, 0.9)`, // Electric cyan spark
-          life: 0.8, decay: 0.03, gravity: -0.04
+          x: window.innerWidth * (0.2 + Math.random() * 0.6), y: window.innerHeight * (0.15 + Math.random() * 0.7),
+          vx: (Math.random() - 0.5) * 1.5, vy: -Math.random() * 1.5 - 0.5, radius: Math.random() * 2.5 + 1,
+          color: `hsla(${Math.random() * 20 + 200}, 100%, 70%, 0.9)`, life: 0.8, decay: 0.03, gravity: -0.04
         });
       }
       update() {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         for (let i = this.particles.length - 1; i >= 0; i--) {
-          const p = this.particles[i];
-          p.x += p.vx; p.y += p.vy; p.vy += p.gravity; p.life -= p.decay;
+          const p = this.particles[i]; p.x += p.vx; p.y += p.vy; p.vy += p.gravity; p.life -= p.decay;
           if (p.life <= 0) { this.particles.splice(i, 1); continue; }
           this.ctx.beginPath();
           if (p.isHeart) {
-            const h = p.radius * p.life;
-            this.ctx.fillStyle = p.color; this.ctx.globalAlpha = p.life;
-            this.ctx.moveTo(p.x, p.y + h/4);
-            this.ctx.bezierCurveTo(p.x - h/2, p.y - h/2, p.x - h, p.y + h/3, p.x, p.y + h);
-            this.ctx.bezierCurveTo(p.x + h, p.y + h/3, p.x + h/2, p.y - h/2, p.x, p.y + h/4);
-            this.ctx.fill();
+            const h = p.radius * p.life; this.ctx.fillStyle = p.color; this.ctx.globalAlpha = p.life;
+            this.ctx.moveTo(p.x, p.y + h/4); this.ctx.bezierCurveTo(p.x - h/2, p.y - h/2, p.x - h, p.y + h/3, p.x, p.y + h);
+            this.ctx.bezierCurveTo(p.x + h, p.y + h/3, p.x + h/2, p.y - h/2, p.x, p.y + h/4); this.ctx.fill();
           } else {
-            this.ctx.arc(p.x, p.y, p.radius * p.life, 0, Math.PI * 2);
-            this.ctx.fillStyle = p.color; this.ctx.globalAlpha = p.life;
-            this.ctx.fill();
+            this.ctx.arc(p.x, p.y, p.radius * p.life, 0, Math.PI * 2); this.ctx.fillStyle = p.color; this.ctx.globalAlpha = p.life; this.ctx.fill();
           }
         }
         this.ctx.globalAlpha = 1.0;
@@ -767,7 +745,7 @@
     function navigateToView(viewName) {
       gameState.currentView = viewName;
       
-      // Control visibility of "Return to Admin" button for admins
+      // Visibility of Return Admin Button
       const returnAdminBtn = document.getElementById('return-admin-btn');
       if (gameState.user && gameState.user.email === adminEmail && viewName !== 'admin' && viewName !== 'signin') {
         returnAdminBtn.classList.remove('hidden');
@@ -799,7 +777,7 @@
         return;
       }
       
-      gameState.isTransitioning = false; // 解除防連點鎖定
+      gameState.isTransitioning = false;
 
       if (vocabularyList.length === 0) {
         alert("單字庫尚未載入，請稍候...");
@@ -809,7 +787,6 @@
       gameState.currentQuestionIndex++;
       document.getElementById('question-count-num').innerText = gameState.currentQuestionIndex;
 
-      // Prioritize wrong words
       let poolToUse = gameState.unansweredWords;
       if (gameState.wrongWordsPool.length > 0) {
         if (gameState.unansweredWords.length === 0 || Math.random() > 0.5) {
@@ -840,7 +817,7 @@
         choiceZone.classList.remove('hidden');
 
         document.getElementById('question-prompt').innerText = randomWordObj.clue;
-        clueElement.classList.add('hidden'); // 隱藏中文提示
+        clueElement.classList.add('hidden');
         generateChoiceButtons(randomWordObj, 'word');
 
       } else if (gameState.currentMode === 'spelling') {
@@ -849,8 +826,8 @@
         choiceZone.classList.add('hidden');
         inputZone.classList.remove('hidden');
 
-        document.getElementById('question-prompt').innerText = getBaseTranslation(randomWordObj.translation); // 只顯示括號前的中文
-        clueElement.innerText = "請拼出對應的英文單字"; // 移除首字母提示
+        document.getElementById('question-prompt').innerText = getBaseTranslation(randomWordObj.translation);
+        clueElement.innerText = "請拼出對應的英文單字";
         clueElement.classList.remove('hidden');
         setTimeout(() => document.getElementById('spelling-field').focus(), 150);
 
@@ -897,7 +874,6 @@
         btn.className = "w-full text-left bg-gray-950 hover:bg-gray-800 border-2 border-gray-800 hover:border-purple-500/50 px-5 py-4 rounded-2xl text-sm font-semibold tracking-wide transition-all duration-150 flex justify-between items-center group active:scale-[0.98]";
         
         const label = document.createElement('span');
-        // If fieldType is 'translation', we only inject the pure Chinese translation, no English/brackets
         label.innerText = fieldType === 'word' ? option.word : getBaseTranslation(option.translation);
         btn.appendChild(label);
 
@@ -928,15 +904,14 @@
     }
 
     function evaluateAnswer(isCorrect, clientX = null, clientY = null) {
-      if (gameState.isTransitioning || gameState.isGameOver) return; // 防止狂點重複觸發
-      gameState.isTransitioning = true; // 上鎖，直到下一題載入
+      if (gameState.isTransitioning || gameState.isGameOver) return;
+      gameState.isTransitioning = true;
 
       const card = document.getElementById('trivia-card');
       const cx = clientX || (window.innerWidth / 2);
       const cy = clientY || (window.innerHeight / 2);
 
       if (isCorrect) {
-        // 從題庫中移除答對的題目
         gameState.unansweredWords = gameState.unansweredWords.filter(w => w.word !== gameState.currentQuestion.word);
         gameState.wrongWordsPool = gameState.wrongWordsPool.filter(w => w.word !== gameState.currentQuestion.word);
 
@@ -964,7 +939,6 @@
         setTimeout(() => loadNextQuestion(), 600);
 
       } else {
-        // 加入錯題優先池
         if (!gameState.wrongWordsPool.some(w => w.word === gameState.currentQuestion.word)) {
           gameState.wrongWordsPool.push(gameState.currentQuestion);
         }
@@ -999,7 +973,6 @@
       const parent = card.parentElement;
       const modal = document.createElement('div');
       modal.className = "bg-red-950/90 border-2 border-red-500 text-red-100 p-5 rounded-2xl shadow-2xl relative z-50 text-center animate-bounce-in space-y-2 mt-4";
-      // 這裡特別顯示完整的 translation (包含原本括號內的例句)，強迫記憶
       modal.innerHTML = `
         <p class="font-black text-sm uppercase tracking-wider text-red-400">💡 答錯了！請看正確答案記起來：</p>
         <p class="text-2xl font-black font-mono tracking-wider text-white uppercase">${gameState.currentQuestion.word}</p>
@@ -1018,7 +991,7 @@
     }
 
     async function endTheGame() {
-      if (gameState.isGameOver) return; // 確保只執行一次
+      if (gameState.isGameOver) return;
       gameState.isGameOver = true;
 
       audio.playFanfare();
@@ -1064,12 +1037,12 @@
         try {
           const colRef = collection(db, 'artifacts', appId, 'public', 'data', 'scores');
           await addDoc(colRef, resultPayload);
-          console.log("Successfully recorded high score to cloud.");
         } catch (err) {
           console.error("Firestore sync fail", err);
         }
       } else {
         const cache = JSON.parse(localStorage.getItem('ket_quest_local_scores') || '[]');
+        resultPayload.docId = 'local_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5); // Fallback offline ID
         cache.push(resultPayload);
         localStorage.setItem('ket_quest_local_scores', JSON.stringify(cache));
       }
@@ -1091,13 +1064,11 @@
       }
 
       if (allRecords.length === 0) allRecords = JSON.parse(localStorage.getItem('ket_quest_local_scores') || '[]');
-
+      
       allRecords.sort((a, b) => b.score - a.score);
       const top5 = allRecords.slice(0, 5);
 
       tbody.innerHTML = '';
-      
-      // 如果完全沒有紀錄時，顯示乾淨的提示
       if (top5.length === 0) {
         tbody.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-gray-500 font-mono">目前尚無任何挑戰紀錄</td></tr>';
         return;
@@ -1123,7 +1094,7 @@
     }
 
     // ----------------------------------------------------
-    // ADMIN ANALYTICS DASHBOARD
+    // ADMIN DASHBOARD & ADVANCED MANAGEMENT
     // ----------------------------------------------------
     let trendChartInstance = null;
 
@@ -1133,16 +1104,26 @@
         try {
           const colRef = collection(db, 'artifacts', appId, 'public', 'data', 'scores');
           const querySnapshot = await getDocs(colRef);
-          querySnapshot.forEach(doc => { attempts.push(doc.data()); });
+          querySnapshot.forEach(docSnap => { 
+            attempts.push({ docId: docSnap.id, ...docSnap.data() }); 
+          });
         } catch (e) { console.error("Admin stats fetch failed", e); }
       }
 
-      if (attempts.length === 0) attempts = JSON.parse(localStorage.getItem('ket_quest_local_scores') || '[]');
+      if (attempts.length === 0) {
+        attempts = JSON.parse(localStorage.getItem('ket_quest_local_scores') || '[]');
+      }
 
+      gameState.rawAttemptHistory = attempts;
+      gameState.selectedIds.clear(); // Reset selections
+      updateAdminDashboardUI();
+    }
+
+    // Memory-driven update for seamless UI transitions
+    function updateAdminDashboardUI() {
+      const attempts = gameState.rawAttemptHistory;
       const uniquePlayers = new Set(attempts.map(a => a.email)).size;
       const totalGames = attempts.length;
-      
-      // 避免空資料時取得 -Infinity 分數，增加保護機制
       const highScore = totalGames > 0 ? Math.max(...attempts.map(a => a.score)) : 0;
       const averageScore = totalGames > 0 ? Math.round(attempts.reduce((sum, a) => sum + a.score, 0) / totalGames) : 0;
 
@@ -1151,16 +1132,247 @@
       document.getElementById('widget-high-score').innerText = highScore.toLocaleString();
       document.getElementById('widget-average').innerText = averageScore.toLocaleString();
 
-      renderAdminTable(attempts);
+      // Clear search field when manually updating entire board
+      const searchField = document.getElementById('admin-search-field');
+      const keyword = searchField ? searchField.value.toLowerCase().trim() : "";
+      
+      const filtered = keyword ? attempts.filter(a => a.displayName.toLowerCase().includes(keyword) || a.email.toLowerCase().includes(keyword)) : attempts;
+
+      renderAdminTable(filtered);
       renderWrongWordsSection(attempts);
       renderAdminTrendChart(attempts);
-
-      gameState.rawAttemptHistory = attempts;
+      updateActionBarUI();
     }
 
-    // 將 showAttemptDetails 掛載到 window 物件，讓動態產生的按鈕可以呼叫
-    window.showAttemptDetails = function(attemptIndex) {
-      const attempt = gameState.rawAttemptHistory[attemptIndex];
+    function renderAdminTable(attemptsToRender) {
+      const tbody = document.getElementById('attempts-table-body');
+      tbody.innerHTML = '';
+      
+      // Chronological descending
+      const sorted = [...attemptsToRender].sort((a, b) => b.timestamp - a.timestamp);
+      gameState.visibleIds = sorted.map(a => a.docId); // Update visible items for "Select All"
+      
+      // Sync Master Checkbox
+      const chkAll = document.getElementById('chk-all');
+      if (chkAll) {
+         chkAll.checked = gameState.visibleIds.length > 0 && gameState.visibleIds.every(id => gameState.selectedIds.has(id));
+      }
+
+      if (sorted.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" class="p-8 text-center text-gray-500 font-mono">沒有找到任何測驗紀錄</td></tr>';
+        return;
+      }
+
+      sorted.forEach((attempt) => {
+        const tr = document.createElement('tr');
+        tr.id = `row-${attempt.docId}`;
+        tr.className = "border-b border-gray-900/60 hover:bg-gray-900/30 transition-all duration-300";
+        const dateStr = new Date(attempt.timestamp).toLocaleDateString('zh-TW', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+        const isChecked = gameState.selectedIds.has(attempt.docId) ? 'checked' : '';
+
+        tr.innerHTML = `
+          <td class="p-4 text-center"><input type="checkbox" id="chk-${attempt.docId}" onclick="window.toggleSelect('${attempt.docId}')" class="custom-checkbox" ${isChecked}></td>
+          <td class="p-4 font-bold text-gray-200">${attempt.displayName}</td>
+          <td class="p-4 font-mono text-xs text-gray-400">${attempt.email}</td>
+          <td class="p-4 text-center font-black text-yellow-400 font-mono">${attempt.score.toLocaleString()}</td>
+          <td class="p-4 text-center text-gray-300">${attempt.correctCount} / ${attempt.totalQuestions}</td>
+          <td class="p-4 text-center text-green-400 font-bold font-mono">${attempt.accuracy}%</td>
+          <td class="p-4 text-center text-purple-400 font-bold font-mono">${attempt.maxCombo}</td>
+          <td class="p-4 text-right text-xs text-gray-500 font-mono">${dateStr}</td>
+          <td class="p-4 text-center">
+            <button onclick="window.showAttemptDetails('${attempt.docId}')" class="text-purple-400 hover:text-purple-300 bg-purple-500/10 hover:bg-purple-500/20 px-3 py-1.5 rounded-lg transition-colors shadow-sm" title="查看詳情">
+              <i class="fa-solid fa-magnifying-glass"></i>
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Interactive Checkboxes & Action Bar Logic
+    window.toggleSelect = function(docId) {
+      if (gameState.selectedIds.has(docId)) {
+        gameState.selectedIds.delete(docId);
+      } else {
+        gameState.selectedIds.add(docId);
+      }
+      
+      const chkAll = document.getElementById('chk-all');
+      if (chkAll) {
+         chkAll.checked = gameState.visibleIds.length > 0 && gameState.visibleIds.every(id => gameState.selectedIds.has(id));
+      }
+      updateActionBarUI();
+    };
+
+    window.toggleSelectAll = function() {
+      const chkAll = document.getElementById('chk-all');
+      const isChecked = chkAll ? chkAll.checked : false;
+
+      gameState.visibleIds.forEach(id => {
+        if (isChecked) gameState.selectedIds.add(id);
+        else gameState.selectedIds.delete(id);
+        
+        const chk = document.getElementById(`chk-${id}`);
+        if (chk) chk.checked = isChecked;
+      });
+      updateActionBarUI();
+    };
+
+    function updateActionBarUI() {
+      const bar = document.getElementById('admin-action-bar');
+      if (!bar) return;
+
+      if (gameState.selectedIds.size > 0) {
+        bar.classList.remove('hidden');
+        bar.classList.add('flex');
+      } else {
+        bar.classList.add('hidden');
+        bar.classList.remove('flex');
+      }
+
+      document.getElementById('selected-count').innerText = gameState.selectedIds.size;
+
+      // Calc total wrong words among selections
+      let wrongCount = 0;
+      gameState.selectedIds.forEach(id => {
+        const record = gameState.rawAttemptHistory.find(a => a.docId === id);
+        if (record && record.wrongWords) {
+          wrongCount += record.wrongWords.length;
+        }
+      });
+      document.getElementById('selected-wrong-count').innerText = wrongCount;
+    }
+
+    // Dynamic Search Binding
+    document.getElementById('admin-search-field').addEventListener('input', (e) => {
+      const keyword = e.target.value.toLowerCase().trim();
+      const filtered = gameState.rawAttemptHistory.filter(attempt => attempt.displayName.toLowerCase().includes(keyword) || attempt.email.toLowerCase().includes(keyword));
+      renderAdminTable(filtered);
+    });
+
+    // Seamless Item Deletion
+    window.deleteSelected = async function() {
+      if (!confirm(`確定要永久刪除選取的 ${gameState.selectedIds.size} 筆紀錄嗎？`)) return;
+
+      const idsToDelete = Array.from(gameState.selectedIds);
+
+      // 1. Play exit animations immediately
+      idsToDelete.forEach(id => {
+        const row = document.getElementById(`row-${id}`);
+        if (row) row.classList.add('row-deleting');
+      });
+
+      // 2. Perform DB deletion in background
+      if (!isOfflineMode && db) {
+        try {
+          const deletePromises = idsToDelete.map(id => deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'scores', id)));
+          await Promise.all(deletePromises);
+        } catch (e) {
+          console.error("Selective Delete failed", e);
+        }
+      } else {
+        // Offline array filter
+        let cache = JSON.parse(localStorage.getItem('ket_quest_local_scores') || '[]');
+        cache = cache.filter(a => !idsToDelete.includes(a.docId));
+        localStorage.setItem('ket_quest_local_scores', JSON.stringify(cache));
+      }
+
+      // 3. Update Memory State & Sync UI after animation completes
+      setTimeout(() => {
+        gameState.rawAttemptHistory = gameState.rawAttemptHistory.filter(a => !idsToDelete.includes(a.docId));
+        gameState.selectedIds.clear();
+        updateAdminDashboardUI();
+      }, 300);
+    };
+
+    // Advanced Export Handlers
+    window.exportSelected = function(format) {
+      const recordsToExport = gameState.rawAttemptHistory.filter(a => gameState.selectedIds.has(a.docId));
+      executeExportProcessor(recordsToExport, format);
+    };
+
+    window.exportAllRecords = function(format) {
+      executeExportProcessor(gameState.rawAttemptHistory, format);
+    };
+
+    function executeExportProcessor(records, format) {
+      if (!records || records.length === 0) {
+        alert("找不到可匯出的資料！");
+        return;
+      }
+      
+      let htmlContent = `
+        <div style="text-align:center; margin-bottom:30px;">
+          <h2 style="color:#4b5563; font-size:24px;">KET 單字測驗 錯題與成績分析報告</h2>
+          <p style="color:#6b7280; font-size:14px;">產出時間：${new Date().toLocaleString('zh-TW')}</p>
+        </div>
+      `;
+
+      records.sort((a,b) => b.timestamp - a.timestamp).forEach(r => {
+        const dateStr = new Date(r.timestamp).toLocaleString('zh-TW');
+        htmlContent += `
+          <div style="border:1px solid #e5e7eb; border-radius:8px; padding:15px; margin-bottom:20px; background-color:#f9fafb;">
+            <h3 style="color:#111827; margin-top:0;">${r.displayName} <span style="font-size:14px; color:#6b7280; font-weight:normal;">(${r.email})</span></h3>
+            <ul style="color:#374151; list-style-type:square; margin-bottom:15px;">
+                <li>測驗時間：${dateStr}</li>
+                <li>最終得分：<b>${r.score}</b> 分</li>
+                <li>答題準確度：<b>${r.accuracy}%</b> (${r.correctCount} / ${r.totalQuestions})</li>
+            </ul>
+        `;
+
+        if (r.wrongWords && r.wrongWords.length > 0) {
+          htmlContent += `
+            <h4 style="color:#dc2626; margin-bottom:10px;">需加強單字清單 (${r.wrongWords.length} 題)：</h4>
+            <table style="width:100%; border-collapse:collapse; margin-bottom:10px; font-size:14px;">
+              <thead>
+                <tr style="background-color:#fee2e2; color:#991b1b; text-align:left;">
+                  <th style="padding:8px; border:1px solid #fca5a5; width:30%;">英文單字</th>
+                  <th style="padding:8px; border:1px solid #fca5a5;">完整翻譯解析</th>
+                </tr>
+              </thead>
+              <tbody>
+          `;
+          r.wrongWords.forEach(w => {
+            const vocab = vocabularyList.find(v => v.word === w);
+            const transFull = vocab ? vocab.translation : '無翻譯';
+            htmlContent += `<tr><td style="padding:8px; border:1px solid #fca5a5; font-weight:bold;">${w}</td><td style="padding:8px; border:1px solid #fca5a5; color:#4b5563;">${transFull}</td></tr>`;
+          });
+          htmlContent += `</tbody></table>`;
+        } else {
+           htmlContent += `<p style="color:#16a34a; font-weight:bold;">表現極佳！本次無任何答錯單字。</p>`;
+        }
+        htmlContent += `</div>`;
+      });
+
+      if (format === 'docx') {
+        const header = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>KET 測驗報告</title><style>body{font-family: 'Microsoft JhengHei', Arial, sans-serif;}</style></head><body>";
+        const footer = "</body></html>";
+        const sourceHTML = header + htmlContent + footer;
+        const source = 'data:application/vnd.ms-word;charset=utf-8,' + encodeURIComponent(sourceHTML);
+        const fileDownload = document.createElement("a");
+        document.body.appendChild(fileDownload);
+        fileDownload.href = source;
+        fileDownload.download = `KET測驗匯出報告_${Date.now()}.doc`;
+        fileDownload.click();
+        document.body.removeChild(fileDownload);
+      } else if (format === 'pdf') {
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(`
+          <html><head>
+          <title>KET 測驗報告 (PDF 列印)</title>
+          <style>body{font-family: 'Microsoft JhengHei', sans-serif; line-height:1.6; padding:20px; color:#111827;} @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }</style>
+          </head><body>
+          ${htmlContent}
+          </body></html>
+        `);
+        printWindow.document.close();
+        setTimeout(() => { printWindow.print(); }, 250);
+      }
+    }
+
+    // Modal Details Renderer
+    window.showAttemptDetails = function(targetDocId) {
+      const attempt = gameState.rawAttemptHistory.find(a => a.docId === targetDocId);
       if (!attempt) return;
 
       const modal = document.getElementById('attempt-details-modal');
@@ -1173,35 +1385,27 @@
           <div class="mt-4">
             <p class="text-red-400 font-bold mb-2"><i class="fa-solid fa-triangle-exclamation"></i> 本次錯題清單 (${attempt.wrongWords.length} 題)：</p>
             <div class="flex flex-wrap gap-2">
-              ${attempt.wrongWords.map(w => `<span class="bg-red-500/10 border border-red-500/30 text-red-300 px-2 py-1 rounded text-xs font-mono uppercase">${w}</span>`).join('')}
+              ${attempt.wrongWords.map(w => `<span class="bg-red-500/10 border border-red-500/30 text-red-300 px-2 py-1 rounded text-xs font-mono uppercase cursor-help" title="需加強">${w}</span>`).join('')}
             </div>
           </div>
         `;
       } else {
-         wrongWordsHtml = `
-          <div class="mt-4">
-            <p class="text-green-400 font-bold"><i class="fa-solid fa-check-circle"></i> 完美通關！本次測驗無任何答錯單字。</p>
-          </div>
-        `;
+         wrongWordsHtml = `<div class="mt-4"><p class="text-green-400 font-bold"><i class="fa-solid fa-check-circle"></i> 完美通關！本次測驗無任何答錯單字。</p></div>`;
       }
 
       content.innerHTML = `
         <div class="grid grid-cols-2 gap-3 mb-2">
           <div class="bg-gray-950 p-3 rounded-xl border border-gray-800">
-            <p class="text-xs text-gray-500 font-mono mb-1">考生姓名</p>
-            <p class="font-bold text-gray-200">${attempt.displayName}</p>
+            <p class="text-xs text-gray-500 font-mono mb-1">考生姓名</p><p class="font-bold text-gray-200">${attempt.displayName}</p>
           </div>
           <div class="bg-gray-950 p-3 rounded-xl border border-gray-800">
-            <p class="text-xs text-gray-500 font-mono mb-1">測驗得分</p>
-            <p class="font-black text-yellow-400 font-mono">${attempt.score.toLocaleString()}</p>
+            <p class="text-xs text-gray-500 font-mono mb-1">測驗得分</p><p class="font-black text-yellow-400 font-mono">${attempt.score.toLocaleString()}</p>
           </div>
           <div class="bg-gray-950 p-3 rounded-xl border border-gray-800">
-            <p class="text-xs text-gray-500 font-mono mb-1">作答準確度</p>
-            <p class="font-bold text-green-400 font-mono">${attempt.accuracy}%</p>
+            <p class="text-xs text-gray-500 font-mono mb-1">作答準確度</p><p class="font-bold text-green-400 font-mono">${attempt.accuracy}%</p>
           </div>
           <div class="bg-gray-950 p-3 rounded-xl border border-gray-800">
-            <p class="text-xs text-gray-500 font-mono mb-1">測驗時間</p>
-            <p class="text-xs text-gray-300">${dateStr}</p>
+            <p class="text-xs text-gray-500 font-mono mb-1">測驗時間</p><p class="text-xs text-gray-300">${dateStr}</p>
           </div>
         </div>
         ${wrongWordsHtml}
@@ -1214,44 +1418,12 @@
       }, 10);
     };
 
-    // 綁定關閉詳情 Modal 邏輯
     document.getElementById('close-details-btn').addEventListener('click', () => {
       const modal = document.getElementById('attempt-details-modal');
       modal.classList.add('opacity-0');
       modal.querySelector('div').classList.add('scale-95');
       setTimeout(() => modal.classList.add('hidden'), 300);
     });
-
-    function renderAdminTable(attempts) {
-      const tbody = document.getElementById('attempts-table-body');
-      tbody.innerHTML = '';
-      const sorted = [...attempts].sort((a, b) => b.timestamp - a.timestamp);
-      
-      // 更新全域對照供單獨點擊讀取用
-      gameState.rawAttemptHistory = sorted;
-
-      sorted.forEach((attempt, index) => {
-        const tr = document.createElement('tr');
-        tr.className = "border-b border-gray-900/60 hover:bg-gray-900/10 transition-colors";
-        const dateStr = new Date(attempt.timestamp).toLocaleDateString('zh-TW', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-
-        tr.innerHTML = `
-          <td class="p-4 font-bold text-gray-200">${attempt.displayName}</td>
-          <td class="p-4 font-mono text-xs text-gray-400">${attempt.email}</td>
-          <td class="p-4 text-center font-black text-yellow-400 font-mono">${attempt.score.toLocaleString()}</td>
-          <td class="p-4 text-center text-gray-300">${attempt.correctCount} / ${attempt.totalQuestions}</td>
-          <td class="p-4 text-center text-green-400 font-bold font-mono">${attempt.accuracy}%</td>
-          <td class="p-4 text-center text-purple-400 font-bold font-mono">${attempt.maxCombo}</td>
-          <td class="p-4 text-right text-xs text-gray-500 font-mono">${dateStr}</td>
-          <td class="p-4 text-center">
-            <button onclick="showAttemptDetails(${index})" class="text-purple-400 hover:text-purple-300 bg-purple-500/10 hover:bg-purple-500/20 px-3 py-1 rounded-lg transition-colors" title="查看詳情">
-              <i class="fa-solid fa-magnifying-glass"></i>
-            </button>
-          </td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
 
     function renderWrongWordsSection(attempts) {
       const listEl = document.getElementById('weak-words-list');
@@ -1293,10 +1465,7 @@
       const ctx = document.getElementById('score-trend-chart');
       if (!ctx) return;
 
-      // 確保將資料依時間（由舊到新）排序，呈現正確的進步趨勢
       const chronoAttempts = [...attempts].sort((a, b) => a.timestamp - b.timestamp);
-      
-      // X軸升級：顯示為實際的測驗日期與時間 (例如：6/10 14:30)
       const labels = chronoAttempts.map(a => {
         const d = new Date(a.timestamp);
         return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
@@ -1327,20 +1496,7 @@
       });
     }
 
-    document.getElementById('admin-search-field').addEventListener('input', (e) => {
-      const keyword = e.target.value.toLowerCase().trim();
-      const filtered = gameState.rawAttemptHistory.filter(attempt => attempt.displayName.toLowerCase().includes(keyword) || attempt.email.toLowerCase().includes(keyword));
-      renderAdminTable(filtered);
-    });
-
-    document.getElementById('admin-switch-to-game-btn').addEventListener('click', () => {
-      resetGameState();
-      navigateToView('gameplay');
-    });
-
-    // ----------------------------------------------------
-    // CLEAR RECORDS MODAL LOGIC
-    // ----------------------------------------------------
+    // Modal For Clear ALL Database
     const clearModal = document.getElementById('clear-confirm-modal');
     
     document.getElementById('admin-clear-records-btn').addEventListener('click', () => {
@@ -1364,24 +1520,16 @@
       btn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i> 處理中...';
       btn.disabled = true;
 
-      // 1. 清除本地暫存
       localStorage.removeItem('ket_quest_local_scores');
 
-      // 2. 清除 Firebase Firestore 中的所有紀錄
       if (!isOfflineMode && db && gameState.user) {
         try {
           const colRef = collection(db, 'artifacts', appId, 'public', 'data', 'scores');
           const querySnapshot = await getDocs(colRef);
           const deletePromises = [];
-          
-          querySnapshot.forEach((docSnap) => {
-            deletePromises.push(deleteDoc(docSnap.ref));
-          });
-          
+          querySnapshot.forEach((docSnap) => { deletePromises.push(deleteDoc(docSnap.ref)); });
           await Promise.all(deletePromises);
-        } catch(e) {
-          console.error("Firebase 清除失敗", e);
-        }
+        } catch(e) { console.error("Firebase 清除失敗", e); }
       }
 
       hideClearModal();
@@ -1389,7 +1537,8 @@
       btn.disabled = false;
       
       gameState.rawAttemptHistory = [];
-      loadAdminStatistics();
+      gameState.selectedIds.clear();
+      updateAdminDashboardUI();
     });
 
     // ----------------------------------------------------
@@ -1434,7 +1583,6 @@
       } else {
         badge.innerText = "ROLE: PLAYER";
         badge.className = "text-xs text-purple-400 font-mono tracking-wider";
-        // Only navigate to gameplay if vocab list is ready
         if (vocabularyList.length > 0) {
           resetGameState();
           navigateToView('gameplay');
