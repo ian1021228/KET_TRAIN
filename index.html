@@ -392,7 +392,15 @@
       currentMode: 'choice',
       wrongWordsRecord: [],
       rawAttemptHistory: [],
+      unansweredWords: [],
+      wrongWordsPool: [],
+      isTransitioning: false, // 換題防連點鎖
+      isGameOver: false       // 結算防重複鎖
     };
+
+    function getBaseTranslation(text) {
+      return text.split('(')[0].split('（')[0].trim();
+    }
 
     // DOM Elements Map
     const views = {
@@ -677,6 +685,10 @@
       gameState.correctCount = 0;
       gameState.maxCombo = 0;
       gameState.wrongWordsRecord = [];
+      gameState.unansweredWords = [...vocabularyList];
+      gameState.wrongWordsPool = [];
+      gameState.isTransitioning = false;
+      gameState.isGameOver = false;
       updateHeaderProgressUI();
     }
 
@@ -735,11 +747,13 @@
     }
 
     function loadNextQuestion() {
-      if (gameState.lives <= 0 || gameState.currentQuestionIndex >= gameState.totalRoundQuestions) {
+      if (gameState.lives <= 0 || (gameState.unansweredWords.length === 0 && gameState.wrongWordsPool.length === 0) || gameState.currentQuestionIndex >= gameState.totalRoundQuestions) {
         endTheGame();
         return;
       }
       
+      gameState.isTransitioning = false; // 解除防連點鎖定
+
       if (vocabularyList.length === 0) {
         alert("單字庫尚未載入，請稍候...");
         return;
@@ -748,8 +762,16 @@
       gameState.currentQuestionIndex++;
       document.getElementById('question-count-num').innerText = gameState.currentQuestionIndex;
 
-      // Random word pick
-      const randomWordObj = vocabularyList[Math.floor(Math.random() * vocabularyList.length)];
+      // Prioritize wrong words
+      let poolToUse = gameState.unansweredWords;
+      if (gameState.wrongWordsPool.length > 0) {
+        if (gameState.unansweredWords.length === 0 || Math.random() > 0.5) {
+            poolToUse = gameState.wrongWordsPool;
+        }
+      }
+
+      const pickIndex = Math.floor(Math.random() * poolToUse.length);
+      const randomWordObj = poolToUse[pickIndex];
       gameState.currentQuestion = randomWordObj;
 
       const modes = ['choice', 'spelling', 'translate_choice'];
@@ -759,6 +781,7 @@
       const card = document.getElementById('trivia-card');
       const inputZone = document.getElementById('spelling-input-zone');
       const choiceZone = document.getElementById('answer-options-grid');
+      const clueElement = document.getElementById('question-clue');
 
       card.classList.remove('animate-shake', 'border-red-500/40', 'border-green-500/40');
       document.getElementById('spelling-field').value = '';
@@ -770,7 +793,7 @@
         choiceZone.classList.remove('hidden');
 
         document.getElementById('question-prompt').innerText = randomWordObj.clue;
-        document.getElementById('question-clue').innerText = `提示：${randomWordObj.translation}`;
+        clueElement.classList.add('hidden'); // 隱藏中文提示
         generateChoiceButtons(randomWordObj, 'word');
 
       } else if (gameState.currentMode === 'spelling') {
@@ -779,8 +802,9 @@
         choiceZone.classList.add('hidden');
         inputZone.classList.remove('hidden');
 
-        document.getElementById('question-prompt').innerText = randomWordObj.translation;
-        document.getElementById('question-clue').innerText = `輸入單字 (首字母: "${randomWordObj.word.charAt(0).toUpperCase()}")`;
+        document.getElementById('question-prompt').innerText = getBaseTranslation(randomWordObj.translation); // 只顯示括號前的中文
+        clueElement.innerText = "請拼出對應的英文單字"; // 移除首字母提示
+        clueElement.classList.remove('hidden');
         setTimeout(() => document.getElementById('spelling-field').focus(), 150);
 
       } else if (gameState.currentMode === 'translate_choice') {
@@ -790,7 +814,8 @@
         choiceZone.classList.remove('hidden');
 
         document.getElementById('question-prompt').innerHTML = `請選出 <span class="text-yellow-400 font-black font-mono underline underline-offset-4 select-all">${randomWordObj.word}</span> 的中文釋義：`;
-        document.getElementById('question-clue').innerText = `例句: "${randomWordObj.clue}"`;
+        clueElement.innerText = `例句: "${randomWordObj.clue}"`;
+        clueElement.classList.remove('hidden');
         generateChoiceButtons(randomWordObj, 'translation');
       }
 
@@ -825,7 +850,7 @@
         btn.className = "w-full text-left bg-gray-950 hover:bg-gray-800 border-2 border-gray-800 hover:border-purple-500/50 px-5 py-4 rounded-2xl text-sm font-semibold tracking-wide transition-all duration-150 flex justify-between items-center group active:scale-[0.98]";
         
         const label = document.createElement('span');
-        label.innerText = fieldType === 'word' ? option.word : option.translation.split('(')[0];
+        label.innerText = fieldType === 'word' ? option.word : getBaseTranslation(option.translation);
         btn.appendChild(label);
 
         const icon = document.createElement('i');
@@ -855,11 +880,18 @@
     }
 
     function evaluateAnswer(isCorrect, clientX = null, clientY = null) {
+      if (gameState.isTransitioning || gameState.isGameOver) return; // 防止狂點重複觸發
+      gameState.isTransitioning = true; // 上鎖，直到下一題載入
+
       const card = document.getElementById('trivia-card');
       const cx = clientX || (window.innerWidth / 2);
       const cy = clientY || (window.innerHeight / 2);
 
       if (isCorrect) {
+        // 從題庫中移除答對的題目
+        gameState.unansweredWords = gameState.unansweredWords.filter(w => w.word !== gameState.currentQuestion.word);
+        gameState.wrongWordsPool = gameState.wrongWordsPool.filter(w => w.word !== gameState.currentQuestion.word);
+
         gameState.combo++;
         gameState.correctCount++;
         if (gameState.combo > gameState.maxCombo) gameState.maxCombo = gameState.combo;
@@ -884,6 +916,11 @@
         setTimeout(() => loadNextQuestion(), 600);
 
       } else {
+        // 加入錯題優先池
+        if (!gameState.wrongWordsPool.some(w => w.word === gameState.currentQuestion.word)) {
+          gameState.wrongWordsPool.push(gameState.currentQuestion);
+        }
+
         audio.playWrong();
         fxEngine.addWrongBurst(cx, cy);
 
@@ -932,6 +969,9 @@
     }
 
     async function endTheGame() {
+      if (gameState.isGameOver) return; // 確保只執行一次
+      gameState.isGameOver = true;
+
       audio.playFanfare();
       const accuracy = Math.round((gameState.correctCount / gameState.totalRoundQuestions) * 100);
       
