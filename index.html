@@ -1092,17 +1092,17 @@
 
       if (allRecords.length === 0) allRecords = JSON.parse(localStorage.getItem('ket_quest_local_scores') || '[]');
 
-      if (allRecords.length === 0) {
-        allRecords = [
-          { displayName: "學霸弟弟", score: 9500, accuracy: 93, timestamp: Date.now() - 3600000 },
-          { displayName: "太空漫步者", score: 7200, accuracy: 80, timestamp: Date.now() - 7200000 }
-        ];
-      }
-
       allRecords.sort((a, b) => b.score - a.score);
       const top5 = allRecords.slice(0, 5);
 
       tbody.innerHTML = '';
+      
+      // 如果完全沒有紀錄時，顯示乾淨的提示
+      if (top5.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-gray-500 font-mono">目前尚無任何挑戰紀錄</td></tr>';
+        return;
+      }
+
       top5.forEach((record, index) => {
         const tr = document.createElement('tr');
         tr.className = "border-b border-gray-900/40 hover:bg-gray-900/20 transition-colors";
@@ -1139,16 +1139,11 @@
 
       if (attempts.length === 0) attempts = JSON.parse(localStorage.getItem('ket_quest_local_scores') || '[]');
 
-      if (attempts.length === 0) {
-        attempts = [
-          { displayName: "學霸弟弟", email: "student@example.com", score: 8500, totalQuestions: 15, correctCount: 13, accuracy: 86, maxCombo: 8, wrongWords: ["abroad", "accident"], timestamp: Date.now() - 86400000 * 3 },
-          { displayName: "學霸弟弟", email: "student@example.com", score: 10200, totalQuestions: 15, correctCount: 14, accuracy: 93, maxCombo: 11, wrongWords: ["ability"], timestamp: Date.now() - 86400000 * 2 }
-        ];
-      }
-
       const uniquePlayers = new Set(attempts.map(a => a.email)).size;
       const totalGames = attempts.length;
-      const highScore = Math.max(...attempts.map(a => a.score));
+      
+      // 避免空資料時取得 -Infinity 分數，增加保護機制
+      const highScore = totalGames > 0 ? Math.max(...attempts.map(a => a.score)) : 0;
       const averageScore = totalGames > 0 ? Math.round(attempts.reduce((sum, a) => sum + a.score, 0) / totalGames) : 0;
 
       document.getElementById('widget-players').innerText = uniquePlayers;
@@ -1298,8 +1293,14 @@
       const ctx = document.getElementById('score-trend-chart');
       if (!ctx) return;
 
+      // 確保將資料依時間（由舊到新）排序，呈現正確的進步趨勢
       const chronoAttempts = [...attempts].sort((a, b) => a.timestamp - b.timestamp);
-      const labels = chronoAttempts.map((a, idx) => `NO.${idx + 1}`);
+      
+      // X軸升級：顯示為實際的測驗日期與時間 (例如：6/10 14:30)
+      const labels = chronoAttempts.map(a => {
+        const d = new Date(a.timestamp);
+        return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+      });
       const dataValues = chronoAttempts.map(a => a.score);
       const accuracies = chronoAttempts.map(a => a.accuracy);
 
