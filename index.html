@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>KET Vocab Quest & Analytics</title>
+  <title>KET Vocab Tower Defense & Analytics</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -42,14 +42,26 @@
     .neon-border-blue { box-shadow: 0 0 15px rgba(59, 130, 246, 0.3), inset 0 0 15px rgba(59, 130, 246, 0.15); }
     .custom-checkbox { accent-color: #8b5cf6; width: 18px; height: 18px; cursor: pointer; border-radius: 4px; }
     .row-deleting { transform: scale(0.95); opacity: 0; pointer-events: none; transition: all 0.3s ease; }
+    
+    /* 確保塔防畫布在背景與UI之間 */
+    #td-canvas {
+      position: absolute;
+      inset: 0;
+      z-index: 5; /* 高於背景粒子，低於UI */
+      pointer-events: none;
+    }
+    #bg-canvas { z-index: 0; }
   </style>
 </head>
 <body class="bg-gray-950 text-gray-100 min-h-screen font-sans flex flex-col overflow-x-hidden relative selection:bg-purple-500 selection:text-white">
 
   <!-- Particle Background Layer -->
   <div class="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-    <canvas id="bg-canvas" class="w-full h-full opacity-60"></canvas>
+    <canvas id="bg-canvas" class="w-full h-full opacity-30"></canvas>
   </div>
+  
+  <!-- Tower Defense Gameplay Layer -->
+  <canvas id="td-canvas" class="w-full h-full"></canvas>
 
   <!-- Loading Screen overlay -->
   <div id="loading-overlay" class="fixed inset-0 bg-gray-950 z-50 flex flex-col items-center justify-center transition-opacity duration-500">
@@ -57,20 +69,20 @@
       <div class="absolute w-full h-full border-4 border-purple-500/20 border-t-purple-500 rounded-full animate-spin"></div>
       <i class="fa-solid fa-graduation-cap text-3xl text-purple-400 animate-pulse"></i>
     </div>
-    <h2 class="text-xl font-bold mt-6 tracking-widest text-purple-300">KET VOCAB QUEST</h2>
-    <p id="loading-text" class="text-sm text-gray-400 mt-2">載入系統與安全驗證中...</p>
+    <h2 class="text-xl font-bold mt-6 tracking-widest text-purple-300">KET TOWER DEFENSE</h2>
+    <p id="loading-text" class="text-sm text-gray-400 mt-2">載入題庫與武器系統中...</p>
   </div>
 
   <!-- Main Navigation Header -->
-  <header class="border-b border-gray-800/80 bg-gray-900/40 backdrop-blur-md sticky top-0 z-40 px-4 py-3">
+  <header class="border-b border-gray-800/80 bg-gray-900/60 backdrop-blur-md sticky top-0 z-40 px-4 py-3 relative">
     <div class="max-w-7xl mx-auto flex items-center justify-between">
       <div class="flex items-center space-x-3">
         <div class="bg-gradient-to-tr from-purple-600 to-indigo-600 p-2 rounded-xl text-white shadow-lg">
-          <i class="fa-solid fa-gamepad text-lg"></i>
+          <i class="fa-solid fa-shield-halved text-lg"></i>
         </div>
         <div>
-          <h1 class="font-black text-lg tracking-wider bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent">KET 單字星際航行</h1>
-          <p id="vocab-status-text" class="text-xs text-gray-400">連線中...</p>
+          <h1 class="font-black text-lg tracking-wider bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent">KET 星際塔防</h1>
+          <p id="vocab-status-text" class="text-xs text-gray-400">系統連線中...</p>
         </div>
       </div>
       <div id="user-profile" class="flex items-center space-x-3 hidden">
@@ -79,7 +91,7 @@
         </button>
         <div class="text-right hidden sm:block">
           <p id="user-name" class="text-sm font-semibold text-gray-200">未登入</p>
-          <p id="user-role-badge" class="text-xs text-purple-400 font-mono">ROLE: PLAYER</p>
+          <p id="user-role-badge" class="text-xs text-purple-400 font-mono">ROLE: DEFENDER</p>
         </div>
         <img id="user-avatar" src="" alt="Avatar" class="w-9 h-9 rounded-full border-2 border-purple-500 bg-gray-800 object-cover" referrerpolicy="no-referrer">
         <button id="logout-btn" class="text-gray-400 hover:text-red-400 text-sm p-2 transition-colors" title="登出">
@@ -93,14 +105,14 @@
 
     <!-- VIEW 1: SIGN IN PAGE -->
     <section id="view-signin" class="max-w-md w-full mx-auto text-center py-10 hidden">
-      <div class="bg-gray-900/60 backdrop-blur-xl border border-gray-800 rounded-3xl p-8 shadow-2xl relative overflow-hidden neon-border">
+      <div class="bg-gray-900/80 backdrop-blur-xl border border-gray-800 rounded-3xl p-8 shadow-2xl relative overflow-hidden neon-border">
         <div class="absolute -top-10 -right-10 w-40 h-40 bg-purple-600/10 rounded-full blur-3xl"></div>
         <div class="absolute -bottom-10 -left-10 w-40 h-40 bg-indigo-600/10 rounded-full blur-3xl"></div>
         <div class="w-20 h-20 bg-gradient-to-tr from-purple-500 to-indigo-500 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-purple-500/20 transform hover:scale-105 transition-transform duration-300">
           <i class="fa-solid fa-meteor text-4xl text-white"></i>
         </div>
-        <h2 class="text-2xl font-black tracking-wide text-white">開啟 KET 單字冒險</h2>
-        <p class="text-sm text-gray-400 mt-2 mb-8">為弟弟衝刺 KET 英文檢定！登入後系統將根據身分自動分流至遊戲區或考情管理後台。</p>
+        <h2 class="text-2xl font-black tracking-wide text-white">保衛 KET 星際基地</h2>
+        <p class="text-sm text-gray-400 mt-2 mb-8">答對單字即可發射飛彈擊毀敵機。中翻英+200能量，填空+50能量，集滿1000施放全屏大招！</p>
         <button id="google-login-btn" class="w-full flex items-center justify-center space-x-3 bg-white hover:bg-gray-100 text-gray-900 font-bold py-3.5 px-6 rounded-2xl shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98]">
           <i class="fa-brands fa-google text-red-500 text-lg"></i>
           <span>Google 帳號快速登入</span>
@@ -109,54 +121,55 @@
     </section>
 
     <!-- VIEW 2: GAMEPLAY ZONE -->
-    <section id="view-gameplay" class="max-w-xl w-full mx-auto hidden flex flex-col space-y-6">
-      <div class="bg-gray-900/60 backdrop-blur-md border border-gray-800/80 rounded-2xl p-4 flex items-center justify-between">
+    <section id="view-gameplay" class="max-w-xl w-full mx-auto hidden flex flex-col space-y-4">
+      <div class="bg-gray-900/80 backdrop-blur-md border border-gray-800/80 rounded-2xl p-4 flex items-center justify-between shadow-lg">
         <div class="flex items-center space-x-2">
-          <div class="text-xs text-gray-400 font-mono tracking-wider mr-1">LIVES:</div>
+          <div class="text-xs text-gray-400 font-mono tracking-wider mr-1">基地耐久度 (LIVES):</div>
           <div id="heart-container" class="flex space-x-1.5"></div>
         </div>
         <div class="text-right">
-          <p class="text-xs text-gray-400 font-mono tracking-wider uppercase">Current Score</p>
-          <p id="game-score" class="text-2xl font-black text-yellow-400 font-mono">00000</p>
+          <p class="text-xs text-gray-400 font-mono tracking-wider uppercase">Score</p>
+          <p id="game-score" class="text-2xl font-black text-yellow-400 font-mono drop-shadow-md">00000</p>
         </div>
       </div>
 
       <div class="flex items-center space-x-4">
-        <div class="bg-gradient-to-r from-pink-500/10 to-purple-500/10 border border-purple-500/20 rounded-2xl px-4 py-3 flex items-center space-x-2 relative overflow-hidden flex-1 select-none">
+        <div class="bg-gradient-to-r from-pink-500/20 to-purple-500/20 border border-purple-500/40 rounded-2xl px-4 py-3 flex items-center space-x-2 relative overflow-hidden flex-1 select-none backdrop-blur-md">
           <span class="text-2xl">🔥</span>
           <div>
             <p id="combo-display" class="text-xl font-black tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-purple-400 font-mono">COMBO X0</p>
-            <p class="text-[10px] text-purple-300 uppercase tracking-widest font-mono">Combo Power-up</p>
+            <p class="text-[10px] text-purple-300 uppercase tracking-widest font-mono">攻擊連段</p>
           </div>
         </div>
-        <div id="multiplier-badge" class="bg-gray-900/60 border border-gray-800 rounded-2xl px-5 py-3 text-center min-w-[80px] transition-all">
-          <p class="text-[10px] text-gray-400 uppercase tracking-widest font-mono">Multiplier</p>
-          <p id="multiplier-text" class="text-xl font-black text-purple-400 font-mono">1.0X</p>
+        <div class="bg-gray-900/80 backdrop-blur-md border border-blue-800/50 rounded-2xl px-5 py-3 text-center min-w-[120px] transition-all">
+          <p class="text-[10px] text-cyan-400 uppercase tracking-widest font-mono font-bold">大招能量</p>
+          <p id="energy-text" class="text-xl font-black text-blue-400 font-mono drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]">0 / 1000</p>
         </div>
       </div>
 
-      <div class="bg-gray-900/40 rounded-full p-1 border border-gray-800/60 relative overflow-hidden">
-        <div id="energy-progress" class="bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 h-2.5 rounded-full w-0 transition-all duration-300"></div>
-        <div id="energy-glow-element" class="absolute inset-0 bg-blue-500/20 mix-blend-screen opacity-0 animate-pulse rounded-full"></div>
+      <!-- 能量條 -->
+      <div class="bg-gray-900/80 backdrop-blur-sm rounded-full p-1 border border-gray-800/80 relative overflow-hidden shadow-inner">
+        <div id="energy-progress" class="bg-gradient-to-r from-blue-500 via-cyan-400 to-white h-3 rounded-full w-0 transition-all duration-300 shadow-[0_0_10px_rgba(34,211,238,0.6)]"></div>
+        <div id="energy-glow-element" class="absolute inset-0 bg-cyan-400/20 mix-blend-screen opacity-0 animate-pulse rounded-full"></div>
       </div>
 
-      <div id="trivia-card" class="bg-gray-900/80 border border-gray-800/80 rounded-3xl p-6 relative overflow-hidden transition-all duration-300 flex flex-col space-y-6">
-        <div id="supercharged-alert" class="absolute inset-x-0 top-0 bg-gradient-to-r from-blue-600/90 to-purple-600/90 py-1.5 px-4 text-center text-xs font-black tracking-widest uppercase text-white animate-pulse transform -translate-y-full transition-transform">
-          ⚡ EXTREME ENERGY MODE! SCORE X2! ⚡
+      <div id="trivia-card" class="bg-gray-900/85 backdrop-blur-xl border border-gray-700/80 rounded-3xl p-6 relative overflow-hidden transition-all duration-300 flex flex-col space-y-6 shadow-2xl">
+        <div id="supercharged-alert" class="absolute inset-x-0 top-0 bg-gradient-to-r from-cyan-600/90 to-blue-600/90 py-1.5 px-4 text-center text-xs font-black tracking-widest uppercase text-white animate-pulse transform -translate-y-full transition-transform">
+          💥 大招已觸發！全屏秒殺！ 💥
         </div>
-        <div class="flex items-center justify-between border-b border-gray-800 pb-4">
-          <span id="question-type-badge" class="text-xs bg-purple-500/20 text-purple-300 font-bold px-3 py-1 rounded-full border border-purple-500/30 uppercase tracking-widest font-mono">
+        <div class="flex items-center justify-between border-b border-gray-700 pb-4">
+          <span id="question-type-badge" class="text-xs bg-purple-500/30 text-purple-200 font-bold px-3 py-1 rounded-full border border-purple-500/50 uppercase tracking-widest font-mono">
             模式載入中
           </span>
-          <span class="text-xs text-gray-400 font-mono">
-            QUEST <span id="question-count-num" class="text-purple-400 font-bold">1</span> / 15
+          <span class="text-xs text-gray-300 font-mono font-bold">
+            WAVE <span id="question-count-num" class="text-purple-400 text-lg">1</span> / 15
           </span>
         </div>
         
-        <!-- 動態題目區 (包含單字或填空句子) -->
+        <!-- 動態題目區 -->
         <div class="min-h-[100px] flex flex-col justify-center items-center text-center relative z-10">
-          <p id="question-prompt" class="text-xl sm:text-3xl font-bold leading-relaxed max-w-lg mx-auto text-gray-100 select-none">載入中...</p>
-          <p id="question-clue" class="text-sm text-gray-400 mt-4 bg-gray-950/40 py-2 px-4 rounded-xl border border-gray-800/40 inline-block max-w-sm hidden">---</p>
+          <p id="question-prompt" class="text-xl sm:text-3xl font-bold leading-relaxed max-w-lg mx-auto text-white select-none drop-shadow-md">載入中...</p>
+          <p id="question-clue" class="text-sm text-gray-300 mt-4 bg-gray-950/60 py-2 px-4 rounded-xl border border-gray-700/60 inline-block max-w-sm hidden font-bold">---</p>
         </div>
         
         <div class="relative z-10">
@@ -165,10 +178,10 @@
           <!-- 手動拼寫區塊 -->
           <div id="spelling-input-zone" class="space-y-4 hidden">
             <div class="relative">
-              <input type="text" id="spelling-field" autocomplete="off" placeholder="輸入單字拼寫 (不分大小寫)" class="w-full bg-gray-950 border-2 border-gray-800 rounded-2xl px-5 py-4 text-center text-lg font-bold tracking-widest text-purple-300 focus:outline-none focus:border-purple-500 uppercase">
+              <input type="text" id="spelling-field" autocomplete="off" placeholder="輸入單字拼寫 (大招能量+200)" class="w-full bg-gray-950/90 border-2 border-pink-500/50 rounded-2xl px-5 py-4 text-center text-lg font-bold tracking-widest text-pink-300 focus:outline-none focus:border-pink-400 uppercase shadow-inner placeholder-pink-800/50">
             </div>
-            <button id="spelling-submit-btn" class="w-full py-4 px-6 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 text-white font-extrabold rounded-2xl shadow-xl transition-all duration-200">
-              送出答案 <i class="fa-solid fa-paper-plane ml-2 text-sm"></i>
+            <button id="spelling-submit-btn" class="w-full py-4 px-6 bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 text-white font-extrabold rounded-2xl shadow-xl transition-all duration-200 shadow-pink-500/20 border border-pink-500/50">
+              發射飛彈 <i class="fa-solid fa-rocket ml-2 text-sm"></i>
             </button>
           </div>
         </div>
@@ -177,98 +190,98 @@
 
     <!-- VIEW 3: GAMEOVER -->
     <section id="view-gameover" class="max-w-xl w-full mx-auto hidden flex flex-col space-y-6">
-      <div class="bg-gray-900/60 backdrop-blur-md border border-gray-800 rounded-3xl p-8 shadow-2xl relative overflow-hidden text-center">
+      <div class="bg-gray-900/80 backdrop-blur-xl border border-gray-800 rounded-3xl p-8 shadow-2xl relative overflow-hidden text-center">
         <div id="star-award-container" class="flex justify-center space-x-4 mb-4 text-gray-700">
           <i class="fa-solid fa-star text-4xl transform -rotate-12"></i>
           <i class="fa-solid fa-star text-6xl -translate-y-2"></i>
           <i class="fa-solid fa-star text-4xl transform rotate-12"></i>
         </div>
         <h2 id="ending-title" class="text-3xl font-black tracking-wider text-white">任務完成！</h2>
-        <p id="ending-subtitle" class="text-gray-400 mt-2 text-sm">弟弟，這次的 KET 檢定衝刺表現非常亮眼喔！</p>
+        <p id="ending-subtitle" class="text-gray-400 mt-2 text-sm">基地保衛戰結束，來看看這次的戰績吧！</p>
         <div class="grid grid-cols-2 gap-4 my-8">
-          <div class="bg-gray-950/60 border border-gray-800 rounded-2xl p-4">
-            <p class="text-xs text-gray-400 font-mono">最終分數</p><p id="final-score" class="text-3xl font-black text-yellow-400 mt-1">0</p>
+          <div class="bg-gray-950/80 border border-gray-700 rounded-2xl p-4 shadow-inner">
+            <p class="text-xs text-gray-400 font-mono">最終分數</p><p id="final-score" class="text-3xl font-black text-yellow-400 mt-1 drop-shadow-md">0</p>
           </div>
-          <div class="bg-gray-950/60 border border-gray-800 rounded-2xl p-4">
-            <p class="text-xs text-gray-400 font-mono">答對率</p><p id="accuracy-rate" class="text-3xl font-black text-green-400 mt-1">0%</p>
+          <div class="bg-gray-950/80 border border-gray-700 rounded-2xl p-4 shadow-inner">
+            <p class="text-xs text-gray-400 font-mono">答對率</p><p id="accuracy-rate" class="text-3xl font-black text-green-400 mt-1 drop-shadow-md">0%</p>
           </div>
         </div>
-        <button id="retry-game-btn" class="w-full py-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold rounded-2xl shadow-lg transition-transform hover:scale-[1.01]">
-          再戰一次！ <i class="fa-solid fa-rotate-left ml-2"></i>
+        <button id="retry-game-btn" class="w-full py-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold rounded-2xl shadow-lg transition-transform hover:scale-[1.01] border border-purple-500/50">
+          再次保衛基地！ <i class="fa-solid fa-rotate-left ml-2"></i>
         </button>
       </div>
-      <div class="bg-gray-900/40 border border-gray-800/80 rounded-2xl p-6">
+      <div class="bg-gray-900/60 backdrop-blur-md border border-gray-800/80 rounded-2xl p-6 shadow-lg">
         <h3 class="text-base font-bold text-gray-200 mb-4"><i class="fa-solid fa-trophy text-yellow-500 mr-2"></i>星際排行榜</h3>
-        <div class="overflow-hidden rounded-xl border border-gray-800/60 bg-gray-950/20">
+        <div class="overflow-hidden rounded-xl border border-gray-700 bg-gray-950/50">
           <table class="w-full text-left text-sm"><tbody id="leaderboard-tbody"></tbody></table>
         </div>
       </div>
     </section>
 
     <!-- VIEW 4: ADMIN -->
-    <section id="view-admin" class="w-full hidden flex flex-col space-y-8">
-      <div class="bg-gradient-to-r from-indigo-950/30 via-purple-950/20 to-gray-950 border border-purple-900/30 rounded-3xl p-6 relative overflow-hidden">
+    <section id="view-admin" class="w-full hidden flex flex-col space-y-8 relative z-20">
+      <div class="bg-gradient-to-r from-indigo-950/70 via-purple-950/60 to-gray-950/80 backdrop-blur-xl border border-purple-900/50 rounded-3xl p-6 relative overflow-hidden shadow-2xl">
         <div class="relative z-10 flex flex-col md:flex-row justify-between gap-4 items-start md:items-center">
           <div>
-            <span class="bg-purple-500/10 text-purple-300 font-bold border border-purple-500/30 rounded-full px-3 py-1 text-xs">星際考情控制中心</span>
-            <h2 class="text-2xl font-black mt-2 text-white">親愛的哥哥/老師，您好！</h2>
+            <span class="bg-purple-500/20 text-purple-300 font-bold border border-purple-500/50 rounded-full px-3 py-1 text-xs">星際防衛司令部</span>
+            <h2 class="text-2xl font-black mt-2 text-white">最高指揮官，您好！</h2>
           </div>
           <div class="flex gap-3">
-            <button id="admin-clear-records-btn" class="bg-red-900/40 hover:bg-red-600/80 border border-red-500/50 text-red-300 hover:text-white font-bold px-4 py-3 rounded-2xl text-sm transition-colors">
+            <button id="admin-clear-records-btn" class="bg-red-900/40 hover:bg-red-600/80 border border-red-500/50 text-red-300 hover:text-white font-bold px-4 py-3 rounded-2xl text-sm transition-colors shadow-lg">
               <i class="fa-solid fa-trash-can mr-2"></i>清空所有紀錄
             </button>
-            <button id="admin-switch-to-game-btn" class="bg-purple-600 hover:bg-purple-500 text-white font-bold px-5 py-3 rounded-2xl text-sm transition-colors">
-              <i class="fa-solid fa-play mr-2"></i>進入遊戲測試
+            <button id="admin-switch-to-game-btn" class="bg-purple-600 hover:bg-purple-500 text-white font-bold px-5 py-3 rounded-2xl text-sm transition-colors shadow-lg border border-purple-400/50">
+              <i class="fa-solid fa-play mr-2"></i>進入戰場測試
             </button>
           </div>
         </div>
       </div>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="bg-gray-900/40 border border-gray-800 rounded-2xl p-5"><span class="text-xs text-gray-400">總測驗場次</span><p id="widget-total-games" class="text-3xl font-bold mt-2 text-white">0</p></div>
-        <div class="bg-gray-900/40 border border-gray-800 rounded-2xl p-5"><span class="text-xs text-gray-400">歷史最高記錄</span><p id="widget-high-score" class="text-3xl font-bold mt-2 text-white">0</p></div>
-        <div class="bg-gray-900/40 border border-gray-800 rounded-2xl p-5"><span class="text-xs text-gray-400">平均分</span><p id="widget-average" class="text-3xl font-bold mt-2 text-white">0</p></div>
-        <div class="bg-gray-900/40 border border-gray-800 rounded-2xl p-5"><span class="text-xs text-gray-400">活躍考生人數</span><p id="widget-players" class="text-3xl font-bold mt-2 text-white">0</p></div>
+        <div class="bg-gray-900/80 backdrop-blur-md border border-gray-700 rounded-2xl p-5 shadow-lg"><span class="text-xs text-gray-400">總防衛場次</span><p id="widget-total-games" class="text-3xl font-bold mt-2 text-white">0</p></div>
+        <div class="bg-gray-900/80 backdrop-blur-md border border-gray-700 rounded-2xl p-5 shadow-lg"><span class="text-xs text-gray-400">歷史最高戰績</span><p id="widget-high-score" class="text-3xl font-bold mt-2 text-white">0</p></div>
+        <div class="bg-gray-900/80 backdrop-blur-md border border-gray-700 rounded-2xl p-5 shadow-lg"><span class="text-xs text-gray-400">平均分</span><p id="widget-average" class="text-3xl font-bold mt-2 text-white">0</p></div>
+        <div class="bg-gray-900/80 backdrop-blur-md border border-gray-700 rounded-2xl p-5 shadow-lg"><span class="text-xs text-gray-400">活躍防衛者</span><p id="widget-players" class="text-3xl font-bold mt-2 text-white">0</p></div>
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div class="lg:col-span-2 bg-gray-900/40 border border-gray-800 rounded-3xl p-6">
-          <h3 class="font-bold text-gray-200 mb-4">測驗成績變化趨勢圖</h3>
-          <div class="relative w-full h-64 bg-gray-950/40 rounded-2xl border border-gray-800/60 p-4"><canvas id="score-trend-chart"></canvas></div>
+        <div class="lg:col-span-2 bg-gray-900/80 backdrop-blur-md border border-gray-700 rounded-3xl p-6 shadow-xl">
+          <h3 class="font-bold text-gray-200 mb-4">戰鬥成績變化趨勢圖</h3>
+          <div class="relative w-full h-64 bg-gray-950/60 rounded-2xl border border-gray-800 p-4"><canvas id="score-trend-chart"></canvas></div>
         </div>
-        <div class="bg-gray-900/40 border border-gray-800 rounded-3xl p-6">
-          <h3 class="font-bold text-gray-200 mb-4">🚨 最常答錯單字</h3>
-          <ul id="weak-words-list" class="space-y-3 max-h-[260px] overflow-y-auto"></ul>
+        <div class="bg-gray-900/80 backdrop-blur-md border border-gray-700 rounded-3xl p-6 shadow-xl">
+          <h3 class="font-bold text-gray-200 mb-4">🚨 最常被突破之弱點單字</h3>
+          <ul id="weak-words-list" class="space-y-3 max-h-[260px] overflow-y-auto pr-2"></ul>
         </div>
       </div>
 
-      <div class="bg-gray-900/40 border border-gray-800 rounded-3xl p-6">
+      <div class="bg-gray-900/80 backdrop-blur-md border border-gray-700 rounded-3xl p-6 shadow-xl">
         <div class="flex flex-col sm:flex-row justify-between gap-4 mb-4">
-          <h3 class="font-bold text-gray-200">實時答題歷史明細</h3>
+          <h3 class="font-bold text-gray-200">實時戰鬥歷史明細</h3>
           <div class="flex items-center space-x-2">
-            <input type="text" id="admin-search-field" placeholder="搜尋姓名或信箱..." class="bg-gray-950 border border-gray-800 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-purple-500">
-            <button onclick="window.exportAllRecords('pdf')" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl text-sm font-bold"><i class="fa-solid fa-file-export mr-1"></i>匯出全部</button>
+            <input type="text" id="admin-search-field" placeholder="搜尋防衛者姓名..." class="bg-gray-950 border border-gray-700 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-purple-500 shadow-inner text-white">
+            <button onclick="window.exportAllRecords('pdf')" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-md"><i class="fa-solid fa-file-export mr-1"></i>匯出報告</button>
           </div>
         </div>
 
-        <div id="admin-action-bar" class="hidden bg-gray-900 border border-purple-500/40 px-5 py-3 rounded-2xl mb-4 items-center justify-between">
-           <div><span class="text-white font-bold text-sm">已選取 <span id="selected-count" class="text-yellow-400">0</span> 項</span><span class="text-gray-400 text-xs ml-4 border-l border-gray-700 pl-4">共錯 <span id="selected-wrong-count" class="text-red-400 font-bold mx-1">0</span> 題</span></div>
+        <div id="admin-action-bar" class="hidden bg-gray-800 border border-purple-500/50 px-5 py-3 rounded-2xl mb-4 items-center justify-between shadow-lg">
+           <div><span class="text-white font-bold text-sm">已選取 <span id="selected-count" class="text-yellow-400">0</span> 項</span><span class="text-gray-400 text-xs ml-4 border-l border-gray-600 pl-4">共錯 <span id="selected-wrong-count" class="text-red-400 font-bold mx-1">0</span> 題</span></div>
            <div class="flex space-x-2">
-             <button onclick="window.deleteSelected()" class="bg-red-500/10 text-red-400 px-3 py-1.5 rounded-lg text-sm font-bold"><i class="fa-solid fa-trash mr-1"></i>刪除</button>
-             <button onclick="window.exportSelected('docx')" class="bg-blue-500/10 text-blue-300 px-3 py-1.5 rounded-lg text-sm font-bold"><i class="fa-solid fa-file-word mr-1"></i>DOCX</button>
-             <button onclick="window.exportSelected('pdf')" class="bg-green-500/10 text-green-300 px-3 py-1.5 rounded-lg text-sm font-bold"><i class="fa-solid fa-file-pdf mr-1"></i>PDF</button>
+             <button onclick="window.deleteSelected()" class="bg-red-500/20 border border-red-500/50 text-red-300 px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-red-500/40 transition-colors"><i class="fa-solid fa-trash mr-1"></i>刪除</button>
+             <button onclick="window.exportSelected('docx')" class="bg-blue-500/20 border border-blue-500/50 text-blue-300 px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-blue-500/40 transition-colors"><i class="fa-solid fa-file-word mr-1"></i>DOCX</button>
+             <button onclick="window.exportSelected('pdf')" class="bg-green-500/20 border border-green-500/50 text-green-300 px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-green-500/40 transition-colors"><i class="fa-solid fa-file-pdf mr-1"></i>PDF</button>
            </div>
         </div>
 
-        <div class="overflow-x-auto rounded-2xl border border-gray-800 bg-gray-950/20">
+        <div class="overflow-x-auto rounded-2xl border border-gray-700 bg-gray-950/60 shadow-inner">
           <table class="w-full text-left text-sm whitespace-nowrap">
-            <thead class="bg-gray-900/60 text-xs text-gray-400">
+            <thead class="bg-gray-800/80 text-xs text-gray-300 border-b border-gray-700">
               <tr>
                 <th class="p-4"><input type="checkbox" id="chk-all" onclick="window.toggleSelectAll()" class="custom-checkbox"></th>
-                <th class="p-4">姓名</th><th class="p-4">得分</th><th class="p-4">準確度</th><th class="p-4">日期</th><th class="p-4 text-center">詳情</th>
+                <th class="p-4">防衛者</th><th class="p-4">戰鬥得分</th><th class="p-4">防禦率</th><th class="p-4">戰鬥時間</th><th class="p-4 text-center">任務詳情</th>
               </tr>
             </thead>
-            <tbody id="attempts-table-body"></tbody>
+            <tbody id="attempts-table-body" class="text-gray-300"></tbody>
           </table>
         </div>
       </div>
@@ -276,21 +289,21 @@
 
     <!-- MODALS -->
     <div id="clear-confirm-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300">
-      <div class="bg-gray-900 border border-red-900/50 rounded-3xl p-6 max-w-sm w-full mx-4 transform scale-95 transition-transform duration-300">
-        <h3 class="text-xl font-black text-white text-center mb-4">警告：永久清除資料</h3>
-        <p class="text-gray-400 text-sm mb-6 text-center">確定要刪除所有的歷史測驗紀錄嗎？此動作無法復原。</p>
+      <div class="bg-gray-900 border border-red-900/80 rounded-3xl p-6 max-w-sm w-full mx-4 transform scale-95 transition-transform duration-300 shadow-2xl">
+        <h3 class="text-xl font-black text-white text-center mb-4">警告：永久清除作戰資料</h3>
+        <p class="text-gray-400 text-sm mb-6 text-center">確定要刪除所有的歷史作戰紀錄嗎？此動作無法復原。</p>
         <div class="flex space-x-3">
-          <button id="cancel-clear-btn" class="flex-1 bg-gray-800 text-gray-300 py-3 rounded-2xl font-bold">取消</button>
-          <button id="confirm-clear-btn" class="flex-1 bg-red-600 text-white py-3 rounded-2xl font-bold">確認清除</button>
+          <button id="cancel-clear-btn" class="flex-1 bg-gray-800 border border-gray-700 text-gray-300 py-3 rounded-2xl font-bold hover:bg-gray-700 transition-colors">取消</button>
+          <button id="confirm-clear-btn" class="flex-1 bg-red-600 border border-red-500 text-white py-3 rounded-2xl font-bold shadow-[0_0_15px_rgba(220,38,38,0.5)] hover:bg-red-500 transition-colors">確認清除</button>
         </div>
       </div>
     </div>
 
     <div id="attempt-details-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300">
-      <div class="bg-gray-900 border border-purple-900/50 rounded-3xl p-6 max-w-md w-full mx-4 transform scale-95 transition-transform duration-300">
-        <div class="flex justify-between border-b border-gray-800 pb-3 mb-4">
-          <h3 class="text-lg font-black text-white">測驗紀錄詳情</h3>
-          <button id="close-details-btn" class="text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+      <div class="bg-gray-900 border border-purple-900/80 rounded-3xl p-6 max-w-md w-full mx-4 transform scale-95 transition-transform duration-300 shadow-2xl">
+        <div class="flex justify-between border-b border-gray-700 pb-3 mb-4">
+          <h3 class="text-lg font-black text-white">防衛任務詳情</h3>
+          <button id="close-details-btn" class="text-gray-400 hover:text-white transition-colors"><i class="fa-solid fa-xmark text-xl"></i></button>
         </div>
         <div id="attempt-details-content" class="text-sm text-gray-300 space-y-4 max-h-[60vh] overflow-y-auto pr-2"></div>
       </div>
@@ -305,19 +318,17 @@
 
     const adminEmail = 'ianw.solar@gmail.com';
     const appId = 'ket-vocabulary-stellar';
-    // 新版格式試算表連結
     const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/1D8ewA8_2ISr0ob7TSAOpcLYfYFjA3815j-7BK9udg6w/export?format=csv";
 
     let db = null; let auth = null; let isOfflineMode = false; let vocabularyList = [];
 
     const gameState = {
-      user: null, currentView: 'signin', score: 0, combo: 0, energy: 0, lives: 5, isSupercharged: false,
+      user: null, currentView: 'signin', score: 0, combo: 0, energy: 0, maxEnergy: 1000, lives: 5,
       currentQuestionIndex: 0, totalRoundQuestions: 15, correctCount: 0, maxCombo: 0, currentQuestion: null, currentMode: 'choice',
       wrongWordsRecord: [], rawAttemptHistory: [], unansweredWords: [], wrongWordsPool: [],
       isTransitioning: false, isGameOver: false, selectedIds: new Set(), visibleIds: []
     };
 
-    // 核心濾除器：去除所有括號內容（包含全形與半形），確保只留下純粹的「中文單字」
     function getBaseTranslation(text) { 
       if (!text) return ''; 
       return text.replace(/[\(\[（].*?[\)\]）]/g, '').trim(); 
@@ -325,7 +336,6 @@
 
     const views = { signin: document.getElementById('view-signin'), gameplay: document.getElementById('view-gameplay'), gameover: document.getElementById('view-gameover'), admin: document.getElementById('view-admin') };
 
-    // --- 程式啟動管理器 ---
     let isVocabLoaded = false;
     let isAuthResolved = false;
 
@@ -343,16 +353,15 @@
       document.getElementById('user-profile').classList.remove('hidden');
       document.getElementById('user-name').innerText = gameState.user.displayName || 'Player';
       
-      // 強制寫入大頭貼
       if (gameState.user.photoURL) document.getElementById('user-avatar').src = gameState.user.photoURL;
       else document.getElementById('user-avatar').src = "https://api.dicebear.com/7.x/pixel-art/svg?seed=" + gameState.user.uid;
       
       const badge = document.getElementById('user-role-badge');
       if (gameState.user.email === adminEmail) {
-        badge.innerText = "ROLE: SUPERVISOR"; badge.className = "text-xs text-red-400 font-mono font-black tracking-wider animate-pulse";
+        badge.innerText = "ROLE: COMMANDER"; badge.className = "text-xs text-red-400 font-mono font-black tracking-wider animate-pulse";
         navigateToView('admin');
       } else {
-        badge.innerText = "ROLE: PLAYER"; badge.className = "text-xs text-purple-400 font-mono tracking-wider";
+        badge.innerText = "ROLE: DEFENDER"; badge.className = "text-xs text-cyan-400 font-mono tracking-wider font-bold";
         resetGameState(); navigateToView('gameplay');
       }
     }
@@ -368,7 +377,6 @@
       return ret;
     }
 
-    // AI 智慧掃描器：從 CSV 找出單字、純中文、句子的欄位
     async function loadExternalVocabulary() {
       try {
         const res = await fetch(SHEET_CSV_URL);
@@ -390,15 +398,12 @@
               const charCount = txt.length;
 
               if (isChinese) {
-                 // 找到純中文單字：短、不含句號 -> 加大分！
                  if (charCount <= 12 && !/[。！？]/.test(txt)) scores[c].t += 3;
                  else if (txt.includes('(') || txt.includes('（')) scores[c].t += 1;
-                 else if (charCount > 15 || /[。！？]/.test(txt)) scores[c].t -= 2; // 懲罰長句子
+                 else if (charCount > 15 || /[。！？]/.test(txt)) scores[c].t -= 2; 
               } else {
-                 // 找句子：含有底線或長度長 -> 加分！
                  if (txt.includes('_')) scores[c].c += 5;
                  else if (wordCount >= 4 || charCount > 25) scores[c].c += 2;
-                 // 找單字：純英文短字 -> 加分！
                  else if (wordCount <= 3 && charCount > 0 && charCount <= 20) scores[c].w += 2;
               }
            }
@@ -412,7 +417,6 @@
            if (scores[i].c > maxC) { maxC=scores[i].c; cCol=i; }
         }
 
-        // 防碰撞處理
         if (wCol === cCol) cCol = (wCol + 1) % maxCols;
         if (tCol === wCol) tCol = (wCol + 2) % maxCols;
 
@@ -421,7 +425,6 @@
           if (row.length > wCol) {
              let rawWord = (row[wCol]||'').trim();
              if (!rawWord || rawWord.toLowerCase().includes('word') || rawWord.includes('單字')) continue;
-             // 清理所有的括號詞性，如: baby (n)
              let cleanWord = rawWord.replace(/[\(\[（].*?[\)\]）]/g, '').trim();
              vocabularyList.push({ word: cleanWord, clue: (row[cCol]||'').trim(), translation: (row[tCol]||'').trim() });
           }
@@ -434,58 +437,293 @@
       resolveStartup();
     }
 
-    // --- Firebase Init ---
     try {
       const app = initializeApp({ apiKey: "AIzaSyCMwOOb0ib_gl5A2cgqw9Lqfrw8D_zJoQM", authDomain: "ket-training-9b88d.firebaseapp.com", projectId: "ket-training-9b88d", storageBucket: "ket-training-9b88d.firebasestorage.app", messagingSenderId: "1048640604545", appId: "1:1048640604545:web:97763f7dec221ca9eac080" });
       auth = getAuth(app); db = getFirestore(app);
     } catch (e) { isOfflineMode = true; }
 
-    // --- Audio & Particles ---
+    // --- Audio System ---
     class SoundEngine {
       constructor() { this.audioCtx = null; }
       init() { if (!this.audioCtx) this.audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
-      playCorrect(c) { this.init(); if(!this.audioCtx)return; const n=this.audioCtx.currentTime, o=this.audioCtx.createOscillator(), g=this.audioCtx.createGain(); o.connect(g); g.connect(this.audioCtx.destination); o.frequency.setValueAtTime(523*(1+c*0.08), n); g.gain.setValueAtTime(0.1, n); g.gain.exponentialRampToValueAtTime(0.001, n+0.3); o.start(n); o.stop(n+0.3); }
-      playWrong() { this.init(); if(!this.audioCtx)return; const n=this.audioCtx.currentTime, o=this.audioCtx.createOscillator(), g=this.audioCtx.createGain(); o.connect(g); g.connect(this.audioCtx.destination); o.type='sawtooth'; o.frequency.setValueAtTime(160, n); o.frequency.linearRampToValueAtTime(40, n+0.4); g.gain.setValueAtTime(0.15, n); g.gain.exponentialRampToValueAtTime(0.001, n+0.4); o.start(n); o.stop(n+0.4); }
-      playSupercharge() { this.init(); if(!this.audioCtx)return; const n=this.audioCtx.currentTime, o=this.audioCtx.createOscillator(), g=this.audioCtx.createGain(); o.connect(g); g.connect(this.audioCtx.destination); o.frequency.setValueAtTime(220, n); g.gain.setValueAtTime(0.1, n); g.gain.exponentialRampToValueAtTime(0.001, n+0.5); o.start(n); o.stop(n+0.5); }
-      playFanfare() { this.init(); if(!this.audioCtx)return; [261,329,392].forEach((f,i)=>{const n=this.audioCtx.currentTime,o=this.audioCtx.createOscillator(),g=this.audioCtx.createGain();o.connect(g);g.connect(this.audioCtx.destination);o.frequency.setValueAtTime(f,n+i*0.1);g.gain.setValueAtTime(0.1,n+i*0.1);g.gain.exponentialRampToValueAtTime(0.001,n+i*0.1+0.4);o.start(n+i*0.1);o.stop(n+i*0.1+0.4);}); }
+      playLaser() { this.init(); if(!this.audioCtx)return; const n=this.audioCtx.currentTime, o=this.audioCtx.createOscillator(), g=this.audioCtx.createGain(); o.connect(g); g.connect(this.audioCtx.destination); o.type='square'; o.frequency.setValueAtTime(800, n); o.frequency.exponentialRampToValueAtTime(100, n+0.1); g.gain.setValueAtTime(0.1, n); g.gain.exponentialRampToValueAtTime(0.001, n+0.1); o.start(n); o.stop(n+0.1); }
+      playExplosion() { this.init(); if(!this.audioCtx)return; const n=this.audioCtx.currentTime, o=this.audioCtx.createOscillator(), g=this.audioCtx.createGain(); o.connect(g); g.connect(this.audioCtx.destination); o.type='sawtooth'; o.frequency.setValueAtTime(100, n); o.frequency.linearRampToValueAtTime(40, n+0.3); g.gain.setValueAtTime(0.2, n); g.gain.exponentialRampToValueAtTime(0.001, n+0.3); o.start(n); o.stop(n+0.3); }
+      playUltimate() { this.init(); if(!this.audioCtx)return; const n=this.audioCtx.currentTime, o=this.audioCtx.createOscillator(), g=this.audioCtx.createGain(); o.connect(g); g.connect(this.audioCtx.destination); o.type='sine'; o.frequency.setValueAtTime(200, n); o.frequency.linearRampToValueAtTime(800, n+0.5); g.gain.setValueAtTime(0.2, n); g.gain.linearRampToValueAtTime(0.001, n+1.0); o.start(n); o.stop(n+1.0); }
+      playError() { this.init(); if(!this.audioCtx)return; const n=this.audioCtx.currentTime, o=this.audioCtx.createOscillator(), g=this.audioCtx.createGain(); o.connect(g); g.connect(this.audioCtx.destination); o.type='triangle'; o.frequency.setValueAtTime(150, n); o.frequency.linearRampToValueAtTime(50, n+0.2); g.gain.setValueAtTime(0.15, n); g.gain.exponentialRampToValueAtTime(0.001, n+0.2); o.start(n); o.stop(n+0.2); }
+      playFanfare() { this.init(); if(!this.audioCtx)return; [261,329,392,523].forEach((f,i)=>{const n=this.audioCtx.currentTime,o=this.audioCtx.createOscillator(),g=this.audioCtx.createGain();o.connect(g);g.connect(this.audioCtx.destination);o.frequency.setValueAtTime(f,n+i*0.1);g.gain.setValueAtTime(0.1,n+i*0.1);g.gain.exponentialRampToValueAtTime(0.001,n+i*0.1+0.5);o.start(n+i*0.1);o.stop(n+i*0.1+0.5);}); }
     }
+    const audio = new SoundEngine();
 
-    class ParticleEngine {
-      constructor(canvas) { this.canvas = canvas; this.ctx = canvas.getContext('2d'); this.particles = []; this.resize(); window.addEventListener('resize', ()=>this.resize()); }
-      resize() { this.canvas.width = window.innerWidth; this.canvas.height = window.innerHeight; }
-      addBurst(x, y, colorStr, isHeart=false) { for(let i=0;i<20;i++){ const a=Math.random()*Math.PI*2, s=Math.random()*4+1; this.particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,r:Math.random()*3+2,c:colorStr,l:1,d:0.02,g:0.05,isHeart}); } }
-      addAmbience() { this.particles.push({ x:window.innerWidth*(0.2+Math.random()*0.6), y:window.innerHeight*(0.15+Math.random()*0.7), vx:(Math.random()-0.5)*1.5, vy:-Math.random()*1.5-0.5, r:Math.random()*2.5+1, c:`hsla(${Math.random()*20+200},100%,70%,0.9)`, l:0.8, d:0.03, g:-0.04, isHeart:false }); }
-      update() {
-        this.ctx.clearRect(0,0,this.canvas.width,this.canvas.height);
-        for(let i=this.particles.length-1;i>=0;i--){
-          const p=this.particles[i]; p.x+=p.vx; p.y+=p.vy; p.vy+=p.g; p.l-=p.d;
-          if(p.l<=0){this.particles.splice(i,1);continue;}
-          this.ctx.beginPath(); this.ctx.fillStyle=p.c; this.ctx.globalAlpha=p.l;
-          if(p.isHeart){ const h=p.r*p.l; this.ctx.moveTo(p.x,p.y+h/4); this.ctx.bezierCurveTo(p.x-h/2,p.y-h/2,p.x-h,p.y+h/3,p.x,p.y+h); this.ctx.bezierCurveTo(p.x+h,p.y+h/3,p.x+h/2,p.y-h/2,p.x,p.y+h/4); this.ctx.fill(); }
-          else { this.ctx.arc(p.x,p.y,p.r*p.l,0,Math.PI*2); this.ctx.fill(); }
+    // --- Tower Defense Engine ---
+    class TDEngine {
+      constructor(canvas) {
+        this.canvas = canvas;
+        this.ctx = canvas.getContext('2d');
+        this.enemies = [];
+        this.projectiles = [];
+        this.particles = [];
+        this.baseX = window.innerWidth * 0.15; // 基地 X 軸位置
+        this.lastSpawn = Date.now();
+        this.spawnInterval = 3000; // 初始每 3 秒生一隻
+        this.ultimateRadius = 0;
+        this.isUltimateActive = false;
+        this.resize();
+        window.addEventListener('resize', () => this.resize());
+      }
+      resize() {
+        this.canvas.width = window.innerWidth;
+        this.canvas.height = window.innerHeight;
+        this.baseX = Math.min(150, window.innerWidth * 0.2);
+      }
+      reset() {
+        this.enemies = []; this.projectiles = []; this.particles = [];
+        this.isUltimateActive = false; this.ultimateRadius = 0;
+        this.spawnInterval = 3000; this.lastSpawn = Date.now();
+      }
+      spawnEnemy() {
+        const topMargin = 80;
+        const bottomMargin = this.canvas.height - 200;
+        const spawnY = Math.random() * (bottomMargin - topMargin) + topMargin;
+        // 隨著題數增加，移動速度變快
+        const speedBase = 1.5 + (gameState.currentQuestionIndex * 0.1);
+        this.enemies.push({
+          x: this.canvas.width + 30, y: spawnY,
+          vx: -(speedBase + Math.random()),
+          radius: 12 + Math.random()*8,
+          color: `hsl(${Math.random()*40}, 100%, 60%)`, // 紅/橘/黃
+          hp: 1, wobbleOffset: Math.random()*Math.PI*2
+        });
+      }
+      fireLaser() {
+        if (this.enemies.length === 0) return;
+        // 找最靠近基地的敵人
+        let target = this.enemies.reduce((prev, curr) => (curr.x < prev.x ? curr : prev));
+        const startY = this.canvas.height / 2;
+        this.projectiles.push({
+          x: this.baseX, y: startY,
+          target: target,
+          speed: 15,
+          color: '#38bdf8' // cyan-400
+        });
+        audio.playLaser();
+      }
+      triggerUltimate() {
+        this.isUltimateActive = true;
+        this.ultimateRadius = 10;
+        audio.playUltimate();
+        // 爆炸所有敵人
+        this.enemies.forEach(e => this.createExplosion(e.x, e.y, e.color));
+        this.enemies = [];
+      }
+      createExplosion(x, y, colorStr) {
+        audio.playExplosion();
+        for(let i=0; i<15; i++) {
+          const a = Math.random() * Math.PI * 2;
+          const s = Math.random() * 4 + 1;
+          this.particles.push({
+            x, y, vx: Math.cos(a)*s, vy: Math.sin(a)*s,
+            life: 1.0, decay: 0.03 + Math.random()*0.02,
+            color: colorStr, radius: Math.random()*3 + 1
+          });
         }
-        this.ctx.globalAlpha=1.0;
+      }
+      takeDamage() {
+        audio.playError();
+        this.createExplosion(this.baseX, this.canvas.height/2, '#ef4444');
+        gameState.lives--;
+        gameState.combo = 0;
+        updateHeaderProgressUI();
+        if (gameState.lives <= 0) endTheGame();
+      }
+      update(dt) {
+        if (gameState.currentView !== 'gameplay' || gameState.isGameOver) return;
+
+        // 生成敵人
+        const currentSpawnInterval = Math.max(1200, this.spawnInterval - (gameState.currentQuestionIndex * 80));
+        if (Date.now() - this.lastSpawn > currentSpawnInterval) {
+          this.spawnEnemy();
+          this.lastSpawn = Date.now();
+        }
+
+        // 更新大招
+        if (this.isUltimateActive) {
+          this.ultimateRadius += 25 * (dt/16);
+          if (this.ultimateRadius > this.canvas.width * 1.5) this.isUltimateActive = false;
+        }
+
+        // 更新敵人
+        for (let i = this.enemies.length - 1; i >= 0; i--) {
+          let e = this.enemies[i];
+          e.x += e.vx * (dt/16);
+          e.y += Math.sin(Date.now()*0.003 + e.wobbleOffset) * 0.5; // 上下飄移
+          
+          if (e.x < this.baseX) { // 撞到基地防護罩
+            this.takeDamage();
+            this.enemies.splice(i, 1);
+          }
+        }
+
+        // 更新子彈
+        for (let i = this.projectiles.length - 1; i >= 0; i--) {
+          let p = this.projectiles[i];
+          if (!p.target || !this.enemies.includes(p.target)) {
+            this.projectiles.splice(i, 1); continue;
+          }
+          const dx = p.target.x - p.x;
+          const dy = p.target.y - p.y;
+          const dist = Math.sqrt(dx*dx + dy*dy);
+          
+          if (dist < p.speed * (dt/16) + p.target.radius) {
+            // 擊中！
+            this.createExplosion(p.target.x, p.target.y, p.target.color);
+            const eIdx = this.enemies.indexOf(p.target);
+            if (eIdx > -1) this.enemies.splice(eIdx, 1);
+            this.projectiles.splice(i, 1);
+          } else {
+            p.x += (dx / dist) * p.speed * (dt/16);
+            p.y += (dy / dist) * p.speed * (dt/16);
+          }
+        }
+
+        // 更新粒子
+        for (let i = this.particles.length - 1; i >= 0; i--) {
+          let p = this.particles[i];
+          p.x += p.vx; p.y += p.vy;
+          p.life -= p.decay;
+          if (p.life <= 0) this.particles.splice(i, 1);
+        }
+      }
+      draw() {
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        if (gameState.currentView !== 'gameplay') return;
+
+        const centerY = this.canvas.height / 2;
+
+        // 畫基地防護罩
+        this.ctx.beginPath();
+        this.ctx.arc(this.baseX - 100, centerY, 300, -Math.PI/3, Math.PI/3);
+        this.ctx.lineWidth = 3;
+        this.ctx.strokeStyle = `rgba(56, 189, 248, ${0.3 + Math.sin(Date.now()*0.005)*0.1})`; // 呼吸光
+        this.ctx.stroke();
+        
+        // 畫基地本體 (簡單科幻塔)
+        this.ctx.fillStyle = '#1e1b4b'; // 深紫
+        this.ctx.strokeStyle = '#6366f1'; // 靛藍
+        this.ctx.lineWidth = 2;
+        this.ctx.beginPath();
+        this.ctx.moveTo(this.baseX - 40, centerY - 60);
+        this.ctx.lineTo(this.baseX, centerY - 20);
+        this.ctx.lineTo(this.baseX, centerY + 20);
+        this.ctx.lineTo(this.baseX - 40, centerY + 60);
+        this.ctx.closePath();
+        this.ctx.fill(); this.ctx.stroke();
+        
+        // 畫發射口
+        this.ctx.fillStyle = '#38bdf8';
+        this.ctx.beginPath(); this.ctx.arc(this.baseX, centerY, 8, 0, Math.PI*2); this.ctx.fill();
+
+        // 畫大招
+        if (this.isUltimateActive) {
+          this.ctx.beginPath();
+          this.ctx.arc(this.baseX, centerY, this.ultimateRadius, 0, Math.PI*2);
+          this.ctx.lineWidth = 15;
+          this.ctx.strokeStyle = `rgba(34, 211, 238, ${Math.max(0, 1 - this.ultimateRadius/(this.canvas.width*0.8))})`;
+          this.ctx.stroke();
+        }
+
+        // 畫敵人
+        this.ctx.shadowBlur = 10;
+        for (const e of this.enemies) {
+          this.ctx.shadowColor = e.color;
+          this.ctx.fillStyle = '#000'; // 內部黑心
+          this.ctx.strokeStyle = e.color;
+          this.ctx.lineWidth = 2;
+          this.ctx.beginPath();
+          this.ctx.arc(e.x, e.y, e.radius, 0, Math.PI*2);
+          this.ctx.fill(); this.ctx.stroke();
+        }
+
+        // 畫子彈 (雷射)
+        this.ctx.shadowBlur = 15;
+        this.ctx.shadowColor = '#38bdf8';
+        this.ctx.strokeStyle = '#fff';
+        this.ctx.lineWidth = 4;
+        this.ctx.lineCap = 'round';
+        for (const p of this.projectiles) {
+          this.ctx.beginPath();
+          this.ctx.moveTo(p.x, p.y);
+          // 算出子彈尾巴
+          const len = 20;
+          const dx = p.target.x - p.x; const dy = p.target.y - p.y;
+          const dist = Math.sqrt(dx*dx + dy*dy);
+          this.ctx.lineTo(p.x - (dx/dist)*len, p.y - (dy/dist)*len);
+          this.ctx.stroke();
+        }
+
+        // 畫粒子
+        this.ctx.shadowBlur = 0; // 重置陰影提升效能
+        for (const p of this.particles) {
+          this.ctx.fillStyle = p.color;
+          this.ctx.globalAlpha = Math.max(0, p.life);
+          this.ctx.beginPath();
+          this.ctx.arc(p.x, p.y, p.radius, 0, Math.PI*2);
+          this.ctx.fill();
+        }
+        this.ctx.globalAlpha = 1.0;
       }
     }
 
-    const audio = new SoundEngine();
-    const fxEngine = new ParticleEngine(document.getElementById('bg-canvas'));
-    function loop(){ fxEngine.update(); if(gameState.isSupercharged && gameState.currentView==='gameplay') fxEngine.addAmbience(); requestAnimationFrame(loop); } loop();
+    const tdEngine = new TDEngine(document.getElementById('td-canvas'));
+    
+    // 背景星空粒子
+    class ParticleEngine {
+      constructor(canvas) { this.canvas = canvas; this.ctx = canvas.getContext('2d'); this.particles = []; this.resize(); window.addEventListener('resize', ()=>this.resize()); }
+      resize() { this.canvas.width = window.innerWidth; this.canvas.height = window.innerHeight; }
+      addAmbience() { this.particles.push({ x:window.innerWidth, y:Math.random()*window.innerHeight, vx:-Math.random()*0.5-0.1, vy:0, r:Math.random()*1.5+0.5, c:`rgba(255,255,255,${Math.random()*0.5+0.1})` }); }
+      update() {
+        this.ctx.clearRect(0,0,this.canvas.width,this.canvas.height);
+        if(Math.random()<0.1) this.addAmbience();
+        for(let i=this.particles.length-1;i>=0;i--){
+          const p=this.particles[i]; p.x+=p.vx;
+          if(p.x<0){this.particles.splice(i,1);continue;}
+          this.ctx.beginPath(); this.ctx.fillStyle=p.c; this.ctx.arc(p.x,p.y,p.r,0,Math.PI*2); this.ctx.fill();
+        }
+      }
+    }
+    const bgEngine = new ParticleEngine(document.getElementById('bg-canvas'));
+
+    let lastTime = Date.now();
+    function loop() { 
+      const now = Date.now();
+      const dt = now - lastTime;
+      lastTime = now;
+      
+      bgEngine.update(); 
+      tdEngine.update(dt);
+      tdEngine.draw();
+      requestAnimationFrame(loop); 
+    } 
+    loop();
 
     function resetGameState() {
-      gameState.score=0; gameState.combo=0; gameState.energy=0; gameState.lives=5; gameState.isSupercharged=false;
+      gameState.score=0; gameState.combo=0; gameState.energy=0; gameState.lives=5;
       gameState.currentQuestionIndex=0; gameState.correctCount=0; gameState.maxCombo=0; gameState.wrongWordsRecord=[];
       gameState.unansweredWords=[...vocabularyList]; gameState.wrongWordsPool=[]; gameState.isTransitioning=false; gameState.isGameOver=false;
+      tdEngine.reset();
       updateHeaderProgressUI();
     }
 
     function updateHeaderProgressUI() {
       document.getElementById('game-score').innerText = String(gameState.score).padStart(5, '0');
       document.getElementById('combo-display').innerText = `COMBO X${gameState.combo}`;
-      document.getElementById('multiplier-text').innerText = `${((1+(gameState.combo/5))*(gameState.isSupercharged?2:1)).toFixed(1)}X`;
-      document.getElementById('energy-progress').style.width = `${gameState.energy}%`;
+      
+      // 更新大招能量條
+      document.getElementById('energy-text').innerText = `${gameState.energy} / 1000`;
+      const energyPercent = Math.min(100, (gameState.energy / gameState.maxEnergy) * 100);
+      document.getElementById('energy-progress').style.width = `${energyPercent}%`;
+      
       const hc=document.getElementById('heart-container'); hc.innerHTML='';
-      for(let i=1;i<=5;i++) hc.innerHTML+=`<i class="fa-solid fa-heart text-lg ${i<=gameState.lives?'text-red-500':'text-gray-800'}"></i>`;
+      for(let i=1;i<=5;i++) hc.innerHTML+=`<i class="fa-solid fa-shield-halved text-lg ${i<=gameState.lives?'text-cyan-400 drop-shadow-[0_0_5px_rgba(34,211,238,0.8)]':'text-gray-800'}"></i>`;
     }
 
     function navigateToView(view) {
@@ -496,7 +734,6 @@
     }
     document.getElementById('return-admin-btn').onclick = () => navigateToView('admin');
 
-    // 自動幫句子挖空 (如果試算表忘記加底線)
     function getDisplayClue(word, clue) {
       if (!clue || typeof clue !== 'string' || clue.trim() === '') return `(請拼出單字: ${word.replace(/[a-zA-Z]/g, '_')})`;
       if (clue.includes('_')) return clue;
@@ -517,45 +754,37 @@
       gameState.currentMode = ['choice','spelling','translate_choice'][Math.floor(Math.random()*3)];
       
       const qPrompt=document.getElementById('question-prompt'), qClue=document.getElementById('question-clue'), inZone=document.getElementById('spelling-input-zone'), chZone=document.getElementById('answer-options-grid');
-      document.getElementById('trivia-card').classList.remove('animate-shake','border-red-500/40','border-green-500/40');
+      document.getElementById('trivia-card').classList.remove('animate-shake','border-red-500/60','border-green-500/60');
       document.getElementById('spelling-field').value='';
       
-      // ===== 核心體驗變更區塊 =====
       if(gameState.currentMode==='choice'){
-        // 模式 1：句子填空 (只顯示英文句子，完全隱藏中文)
-        document.getElementById('question-type-badge').innerText = '句子填空克漏字';
-        document.getElementById('question-type-badge').className = 'text-xs bg-purple-500/20 text-purple-300 font-bold px-3 py-1 rounded-full border border-purple-500/30 uppercase tracking-widest font-mono';
+        document.getElementById('question-type-badge').innerText = '防禦模式：克漏字 (+50 能量)';
+        document.getElementById('question-type-badge').className = 'text-xs bg-purple-500/30 text-purple-200 font-bold px-3 py-1 rounded-full border border-purple-500/50 uppercase tracking-widest font-mono';
         qPrompt.innerText = getDisplayClue(gameState.currentQuestion.word, gameState.currentQuestion.clue); 
-        qClue.classList.add('hidden'); // 隱藏所有提示
+        qClue.classList.add('hidden');
         inZone.classList.add('hidden'); chZone.classList.remove('hidden');
         generateChoiceButtons(gameState.currentQuestion, 'word');
         
       } else if(gameState.currentMode==='spelling'){
-        // 模式 2：中翻英手動拼寫 (顯示「中文單字」，要求拼寫)
-        document.getElementById('question-type-badge').innerText = '中翻英手動挑戰';
-        document.getElementById('question-type-badge').className = 'text-xs bg-pink-500/20 text-pink-300 font-bold px-3 py-1 rounded-full border border-pink-500/30 uppercase tracking-widest font-mono';
-        qPrompt.innerText = getBaseTranslation(gameState.currentQuestion.translation); // 只拿純中文！
-        qClue.innerText = "請根據上方中文，拼出對應的英文單字"; // 無任何首字母或句子提示
+        document.getElementById('question-type-badge').innerText = '重火力模式：中翻英 (+200 能量)';
+        document.getElementById('question-type-badge').className = 'text-xs bg-pink-500/30 text-pink-200 font-bold px-3 py-1 rounded-full border border-pink-500/50 uppercase tracking-widest font-mono';
+        qPrompt.innerText = getBaseTranslation(gameState.currentQuestion.translation);
+        qClue.innerText = "請根據上方中文，輸入發射密碼 (英文單字)";
         qClue.classList.remove('hidden'); chZone.classList.add('hidden'); inZone.classList.remove('hidden');
         setTimeout(()=>document.getElementById('spelling-field').focus(), 150);
         
       } else {
-        // 模式 3：英翻中語意匹配 (顯示英文單字，選出對應的純中文單字)
-        document.getElementById('question-type-badge').innerText = '英翻中語意匹配';
-        document.getElementById('question-type-badge').className = 'text-xs bg-indigo-500/20 text-indigo-300 font-bold px-3 py-1 rounded-full border border-indigo-500/30 uppercase tracking-widest font-mono';
-        qPrompt.innerHTML = `請選出單字的意思：<br><span class="text-yellow-400 text-4xl underline select-all mt-3 inline-block">${gameState.currentQuestion.word}</span>`;
-        qClue.classList.add('hidden'); // 嚴格隱藏英文例句
+        document.getElementById('question-type-badge').innerText = '鎖定模式：語意匹配 (+50 能量)';
+        document.getElementById('question-type-badge').className = 'text-xs bg-indigo-500/30 text-indigo-200 font-bold px-3 py-1 rounded-full border border-indigo-500/50 uppercase tracking-widest font-mono';
+        qPrompt.innerHTML = `鎖定目標含義：<br><span class="text-yellow-400 text-4xl underline select-all mt-3 inline-block drop-shadow-md">${gameState.currentQuestion.word}</span>`;
+        qClue.classList.add('hidden');
         inZone.classList.add('hidden'); chZone.classList.remove('hidden');
         generateChoiceButtons(gameState.currentQuestion, 'translation');
       }
 
-      if (gameState.isSupercharged) {
-        document.getElementById('supercharged-alert').classList.remove('-translate-y-full');
-        document.getElementById('trivia-card').classList.add('neon-border-blue');
-      } else {
-        document.getElementById('supercharged-alert').classList.add('-translate-y-full');
-        document.getElementById('trivia-card').classList.remove('neon-border-blue');
-      }
+      // 重置大招提示UI
+      document.getElementById('supercharged-alert').classList.add('-translate-y-full');
+      document.getElementById('trivia-card').classList.remove('neon-border-blue');
     }
 
     function generateChoiceButtons(correct, type) {
@@ -563,14 +792,11 @@
       let dist=[], arr=[...vocabularyList].sort(()=>0.5-Math.random());
       for(let w of arr){ if(w.word!==correct.word && dist.length<3) dist.push(w); }
       [correct, ...dist].sort(()=>0.5-Math.random()).forEach(opt => {
-        const b = document.createElement('button'); b.className="w-full text-left bg-gray-950 hover:bg-gray-800 border-2 border-gray-800 p-4 rounded-2xl text-sm font-semibold transition-all flex items-center justify-between group active:scale-[0.98]";
-        
+        const b = document.createElement('button'); b.className="w-full text-left bg-gray-950/80 hover:bg-gray-800 border-2 border-gray-700 p-4 rounded-2xl text-sm font-semibold transition-all flex items-center justify-between group active:scale-[0.98] shadow-inner";
         const label = document.createElement('span');
-        // 選項也只會拿到「純淨中文」
         label.innerText = type==='word' ? opt.word : getBaseTranslation(opt.translation);
         b.appendChild(label);
-        
-        b.innerHTML += '<i class="fa-solid fa-chevron-right text-gray-700 group-hover:text-purple-400 group-hover:translate-x-1 transition-all text-xs"></i>';
+        b.innerHTML += '<i class="fa-solid fa-crosshairs text-gray-700 group-hover:text-cyan-400 group-hover:scale-125 transition-all text-xs"></i>';
         b.onclick=()=>{ b.blur(); evaluateAnswer(opt.word===correct.word); }; grid.appendChild(b);
       });
     }
@@ -580,25 +806,46 @@
 
     function evaluateAnswer(isCorrect) {
       if(gameState.isTransitioning||gameState.isGameOver) return; gameState.isTransitioning=true;
-      const card=document.getElementById('trivia-card'), cx=window.innerWidth/2, cy=window.innerHeight/2;
+      const card=document.getElementById('trivia-card');
+      
       if(isCorrect){
         gameState.unansweredWords=gameState.unansweredWords.filter(w=>w.word!==gameState.currentQuestion.word);
         gameState.wrongWordsPool=gameState.wrongWordsPool.filter(w=>w.word!==gameState.currentQuestion.word);
         gameState.combo++; gameState.correctCount++; if(gameState.combo>gameState.maxCombo) gameState.maxCombo=gameState.combo;
-        gameState.score += Math.round(100 * (1+gameState.combo/5) * (gameState.isSupercharged?2:1));
-        if(!gameState.isSupercharged){ gameState.energy=Math.min(100,gameState.energy+15); if(gameState.energy>=100){ gameState.isSupercharged=true; audio.playSupercharge(); card.classList.add('animate-shake'); } }
-        audio.playCorrect(gameState.combo); fxEngine.addBurst(cx,cy,'#fbbf24'); card.classList.add('border-green-500/40');
+        
+        // 塔防能量計算
+        const energyGain = (gameState.currentMode === 'spelling') ? 200 : 50;
+        gameState.energy += energyGain;
+        gameState.score += Math.round(100 * (1+gameState.combo/5));
+        
+        card.classList.add('border-green-500/60');
+        
+        if (gameState.energy >= gameState.maxEnergy) {
+           // 施放大招
+           gameState.energy = 0; // 歸零重置
+           tdEngine.triggerUltimate();
+           document.getElementById('supercharged-alert').classList.remove('-translate-y-full');
+           card.classList.add('neon-border-blue');
+        } else {
+           // 普通攻擊發射
+           tdEngine.fireLaser();
+        }
+        
         setTimeout(()=>loadNextQuestion(), 600);
       } else {
         if(!gameState.wrongWordsPool.some(w=>w.word===gameState.currentQuestion.word)) gameState.wrongWordsPool.push(gameState.currentQuestion);
         if(!gameState.wrongWordsRecord.includes(gameState.currentQuestion.word)) gameState.wrongWordsRecord.push(gameState.currentQuestion.word);
-        audio.playWrong(); fxEngine.addBurst(cx,cy,'#ef4444',true); gameState.lives--; gameState.combo=0; gameState.energy=0; gameState.isSupercharged=false;
-        card.classList.add('animate-shake','border-red-500/40');
         
-        // 答錯顯示完整解析 (這裡會顯示你表格中原始那行帶有完整例句的翻譯)
-        const modal = document.createElement('div'); modal.className="bg-red-950 border-2 border-red-500 p-5 rounded-2xl absolute inset-4 z-50 text-center flex flex-col justify-center animate-bounce-in";
-        modal.innerHTML=`<p class="text-red-400 font-bold mb-2">正確答案：</p><p class="text-3xl text-white font-bold mb-2 uppercase">${gameState.currentQuestion.word}</p><p class="text-sm text-gray-300">${gameState.currentQuestion.translation}</p>`;
-        card.appendChild(modal); setTimeout(()=>{modal.remove(); loadNextQuestion();}, 2200);
+        // 答錯基地震動扣血
+        tdEngine.takeDamage();
+        card.classList.add('animate-shake','border-red-500/60');
+        
+        // 答錯顯示完整解析
+        if (!gameState.isGameOver) {
+          const modal = document.createElement('div'); modal.className="bg-red-950/95 backdrop-blur-md border-2 border-red-500 p-5 rounded-2xl absolute inset-4 z-50 text-center flex flex-col justify-center animate-bounce-in shadow-2xl";
+          modal.innerHTML=`<p class="text-red-400 font-bold mb-2">正確發射密碼：</p><p class="text-4xl text-white font-black mb-2 uppercase drop-shadow-md">${gameState.currentQuestion.word}</p><p class="text-sm text-gray-300 font-bold">${gameState.currentQuestion.translation}</p>`;
+          card.appendChild(modal); setTimeout(()=>{modal.remove(); loadNextQuestion();}, 2200);
+        }
       }
       updateHeaderProgressUI();
     }
@@ -619,7 +866,7 @@
       if(rec.length===0) rec=JSON.parse(localStorage.getItem('ket_scores')||'[]');
       const tb=document.getElementById('leaderboard-tbody'); tb.innerHTML='';
       rec.sort((a,b)=>b.score-a.score).slice(0,5).forEach((r,i) => {
-        tb.innerHTML+=`<tr class="border-b border-gray-800"><td class="p-3 text-yellow-400">#${i+1}</td><td class="p-3">${r.displayName}</td><td class="p-3 text-right text-yellow-400">${r.score}</td><td class="p-3 text-right text-green-400">${r.accuracy}%</td></tr>`;
+        tb.innerHTML+=`<tr class="border-b border-gray-700/50 hover:bg-gray-800/30 transition-colors"><td class="p-3 text-cyan-400 font-bold">#${i+1}</td><td class="p-3 text-gray-200">${r.displayName}</td><td class="p-3 text-right text-yellow-400 font-mono">${r.score}</td><td class="p-3 text-right text-green-400 font-mono">${r.accuracy}%</td></tr>`;
       });
     }
 
@@ -643,7 +890,7 @@
       const sorted=[...data].sort((a,b)=>b.timestamp-a.timestamp); gameState.visibleIds=sorted.map(a=>a.docId);
       sorted.forEach(a => {
         const ds=new Date(a.timestamp).toLocaleDateString('zh-TW',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
-        tb.innerHTML+=`<tr id="row-${a.docId}" class="border-b border-gray-800"><td class="p-4"><input type="checkbox" id="chk-${a.docId}" onclick="window.toggleSelect('${a.docId}')" class="custom-checkbox" ${gameState.selectedIds.has(a.docId)?'checked':''}></td><td class="p-4">${a.displayName}</td><td class="p-4 text-yellow-400">${a.score}</td><td class="p-4">${a.accuracy}%</td><td class="p-4">${ds}</td><td class="p-4 text-center"><button onclick="window.showAttemptDetails('${a.docId}')" class="text-purple-400"><i class="fa-solid fa-magnifying-glass"></i></button></td></tr>`;
+        tb.innerHTML+=`<tr id="row-${a.docId}" class="border-b border-gray-700 hover:bg-gray-800/40 transition-colors"><td class="p-4"><input type="checkbox" id="chk-${a.docId}" onclick="window.toggleSelect('${a.docId}')" class="custom-checkbox" ${gameState.selectedIds.has(a.docId)?'checked':''}></td><td class="p-4 text-gray-200">${a.displayName}</td><td class="p-4 text-yellow-400 font-mono">${a.score}</td><td class="p-4 text-green-400 font-mono">${a.accuracy}%</td><td class="p-4 text-gray-400">${ds}</td><td class="p-4 text-center"><button onclick="window.showAttemptDetails('${a.docId}')" class="text-cyan-400 hover:text-cyan-300 transition-colors"><i class="fa-solid fa-satellite-dish"></i></button></td></tr>`;
       });
       const chkAll = document.getElementById('chk-all');
       if (chkAll) chkAll.checked = gameState.visibleIds.length>0 && gameState.visibleIds.every(id=>gameState.selectedIds.has(id));
@@ -661,7 +908,7 @@
     document.getElementById('admin-search-field').oninput = updateAdminDashboardUI;
 
     window.deleteSelected = async () => {
-      if(!confirm('確定刪除選取的紀錄?')) return;
+      if(!confirm('確定刪除選取的作戰紀錄?')) return;
       const ids=Array.from(gameState.selectedIds); ids.forEach(id=>{ const r=document.getElementById(`row-${id}`); if(r)r.classList.add('row-deleting'); });
       if(!isOfflineMode&&db) await Promise.all(ids.map(id=>deleteDoc(doc(db,'artifacts',appId,'public','data','scores',id))));
       else localStorage.setItem('ket_scores',JSON.stringify(JSON.parse(localStorage.getItem('ket_scores')).filter(a=>!ids.includes(a.docId))));
@@ -673,27 +920,27 @@
 
     function executeExportProcessor(records, format) {
       if (!records||records.length===0) return alert("找不到可匯出的資料！");
-      let html = `<div style="text-align:center; margin-bottom:30px;"><h2 style="color:#4b5563; font-size:24px;">KET 單字測驗 錯題與成績分析報告</h2><p style="color:#6b7280; font-size:14px;">產出時間：${new Date().toLocaleString('zh-TW')}</p></div>`;
+      let html = `<div style="text-align:center; margin-bottom:30px;"><h2 style="color:#4b5563; font-size:24px;">KET 星際防衛作戰 錯題與成績分析報告</h2><p style="color:#6b7280; font-size:14px;">產出時間：${new Date().toLocaleString('zh-TW')}</p></div>`;
       records.sort((a,b)=>b.timestamp-a.timestamp).forEach(r => {
-        html += `<div style="border:1px solid #e5e7eb; border-radius:8px; padding:15px; margin-bottom:20px; background-color:#f9fafb;"><h3 style="color:#111827; margin-top:0;">${r.displayName}</h3><ul style="color:#374151; margin-bottom:15px;"><li>測驗時間：${new Date(r.timestamp).toLocaleString('zh-TW')}</li><li>最終得分：<b>${r.score}</b> 分</li><li>答題準確度：<b>${r.accuracy}%</b></li></ul>`;
+        html += `<div style="border:1px solid #e5e7eb; border-radius:8px; padding:15px; margin-bottom:20px; background-color:#f9fafb;"><h3 style="color:#111827; margin-top:0;">${r.displayName}</h3><ul style="color:#374151; margin-bottom:15px;"><li>作戰時間：${new Date(r.timestamp).toLocaleString('zh-TW')}</li><li>最終得分：<b>${r.score}</b> 分</li><li>防禦準確度：<b>${r.accuracy}%</b></li></ul>`;
         if (r.wrongWords&&r.wrongWords.length>0) {
           html += `<h4 style="color:#dc2626; margin-bottom:10px;">需加強單字清單 (${r.wrongWords.length} 題)：</h4><table style="width:100%; border-collapse:collapse; margin-bottom:10px; font-size:14px;"><thead><tr style="background-color:#fee2e2; color:#991b1b; text-align:left;"><th style="padding:8px; border:1px solid #fca5a5; width:30%;">英文單字</th><th style="padding:8px; border:1px solid #fca5a5;">中文翻譯</th></tr></thead><tbody>`;
-          r.wrongWords.forEach(w => { const v=vocabularyList.find(x=>x.word===w); html+=`<tr><td style="padding:8px; border:1px solid #fca5a5; font-weight:bold;">${w}</td><td style="padding:8px; border:1px solid #fca5a5; color:#4b5563;">${getBaseTranslation(v?v.translation:'無翻譯')}</td></tr>`; });
+          r.wrongWords.forEach(w => { const v=vocabularyList.find(x=>x.word===w); html+=`<tr><td style="padding:8px; border:1px solid #fca5a5; font-weight:bold;">${w}</td><td style="padding:8px; border:1px solid #fca5a5; color:#4b5563;">${getBaseTranslation(v?v.translation:'未知代碼')}</td></tr>`; });
           html += `</tbody></table>`;
-        } else html += `<p style="color:#16a34a; font-weight:bold;">表現極佳！本次無錯單字。</p>`;
+        } else html += `<p style="color:#16a34a; font-weight:bold;">表現極佳！本次無弱點單字。</p>`;
         html += `</div>`;
       });
       if (format === 'docx') {
-        const source = 'data:application/vnd.ms-word;charset=utf-8,' + encodeURIComponent("<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>KET 測驗報告</title><style>body{font-family:'Microsoft JhengHei',sans-serif;}</style></head><body>" + html + "</body></html>");
-        const link = document.createElement("a"); link.href=source; link.download=`KET測驗匯出報告_${Date.now()}.doc`; link.click();
+        const source = 'data:application/vnd.ms-word;charset=utf-8,' + encodeURIComponent("<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>KET 作戰報告</title><style>body{font-family:'Microsoft JhengHei',sans-serif;}</style></head><body>" + html + "</body></html>");
+        const link = document.createElement("a"); link.href=source; link.download=`KET防衛作戰報告_${Date.now()}.doc`; link.click();
       } else {
-        const w = window.open('', '_blank'); w.document.write(`<html><head><title>KET 測驗報告</title><style>body{font-family:'Microsoft JhengHei',sans-serif;line-height:1.6;padding:20px;} @media print{body{-webkit-print-color-adjust:exact;}}</style></head><body>${html}</body></html>`); w.document.close(); setTimeout(()=>w.print(), 250);
+        const w = window.open('', '_blank'); w.document.write(`<html><head><title>KET 作戰報告</title><style>body{font-family:'Microsoft JhengHei',sans-serif;line-height:1.6;padding:20px;} @media print{body{-webkit-print-color-adjust:exact;}}</style></head><body>${html}</body></html>`); w.document.close(); setTimeout(()=>w.print(), 250);
       }
     }
 
     window.showAttemptDetails = (id) => {
       const a = gameState.rawAttemptHistory.find(x=>x.docId===id); if(!a) return;
-      document.getElementById('attempt-details-content').innerHTML=`<p>得分: ${a.score} | 準確率: ${a.accuracy}%</p><div class="mt-4"><p class="text-red-400">錯題 (${a.wrongWords?.length||0}):</p><div class="flex gap-2 flex-wrap">${(a.wrongWords||[]).map(w=>`<span class="bg-red-900 px-2 rounded">${w}</span>`).join('')}</div></div>`;
+      document.getElementById('attempt-details-content').innerHTML=`<p>得分: ${a.score} | 準確率: ${a.accuracy}%</p><div class="mt-4"><p class="text-red-400 font-bold mb-2">突破弱點 (${a.wrongWords?.length||0}):</p><div class="flex gap-2 flex-wrap">${(a.wrongWords||[]).map(w=>`<span class="bg-red-900/50 border border-red-500/50 px-2 py-1 rounded-md shadow-sm font-mono">${w}</span>`).join('')}</div></div>`;
       document.getElementById('attempt-details-modal').classList.remove('hidden','opacity-0');
     };
     
@@ -701,8 +948,8 @@
       const el=document.getElementById('weak-words-list'); el.innerHTML=''; const m={};
       att.forEach(a=> { if(a.wrongWords) a.wrongWords.forEach(w=> m[w]=(m[w]||0)+1); });
       const top=Object.entries(m).sort((a,b)=>b[1]-a[1]).slice(0,5);
-      if(top.length===0) { el.innerHTML='<li class="text-gray-500 text-center py-10">無答錯記錄！</li>'; return; }
-      top.forEach(([w,c]) => { const v=vocabularyList.find(x=>x.word===w); el.innerHTML+=`<li class="bg-gray-950/40 border border-gray-800 p-4 rounded-2xl flex justify-between"><div class="space-y-1"><p class="text-red-400 font-bold uppercase">${w}</p><p class="text-xs text-gray-400">${getBaseTranslation(v?v.translation:'')}</p></div><span class="text-red-300 bg-red-900/50 px-2 py-1 rounded text-xs">錯 ${c} 次</span></li>`; });
+      if(top.length===0) { el.innerHTML='<li class="text-gray-500 text-center py-10">防禦完美，無突破記錄！</li>'; return; }
+      top.forEach(([w,c]) => { const v=vocabularyList.find(x=>x.word===w); el.innerHTML+=`<li class="bg-gray-950/60 border border-gray-700 p-4 rounded-2xl flex justify-between shadow-inner"><div class="space-y-1"><p class="text-red-400 font-bold uppercase drop-shadow-sm">${w}</p><p class="text-xs text-gray-400 font-bold">${getBaseTranslation(v?v.translation:'')}</p></div><span class="text-red-200 bg-red-900/80 border border-red-500/50 px-3 py-1.5 rounded-lg text-xs font-bold shadow-md">突破 ${c} 次</span></li>`; });
     }
 
     let trendChartInstance=null;
@@ -710,7 +957,7 @@
       const ctx=document.getElementById('score-trend-chart'); if(!ctx)return;
       const sorted=[...att].sort((a,b)=>a.timestamp-b.timestamp);
       if(trendChartInstance) trendChartInstance.destroy();
-      trendChartInstance = new Chart(ctx, { type:'line', data:{ labels:sorted.map(a=>{const d=new Date(a.timestamp); return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;}), datasets:[{label:'分數',data:sorted.map(a=>a.score),borderColor:'#8b5cf6',tension:0.3},{label:'答對率(%)',data:sorted.map(a=>a.accuracy),borderColor:'#10b981',tension:0.1}] }, options:{responsive:true,maintainAspectRatio:false} });
+      trendChartInstance = new Chart(ctx, { type:'line', data:{ labels:sorted.map(a=>{const d=new Date(a.timestamp); return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;}), datasets:[{label:'戰鬥分數',data:sorted.map(a=>a.score),borderColor:'#22d3ee',backgroundColor:'rgba(34, 211, 238, 0.1)',fill:true,tension:0.3},{label:'防禦率(%)',data:sorted.map(a=>a.accuracy),borderColor:'#10b981',tension:0.1}] }, options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#e5e7eb'}}},scales:{x:{ticks:{color:'#9ca3af'},grid:{color:'rgba(75,85,99,0.2)'}},y:{ticks:{color:'#9ca3af'},grid:{color:'rgba(75,85,99,0.2)'}}}} });
     }
 
     document.getElementById('close-details-btn').onclick=()=>document.getElementById('attempt-details-modal').classList.add('hidden');
@@ -725,7 +972,7 @@
     else { isAuthResolved=true; gameState.user=null; resolveStartup(); }
 
     document.getElementById('google-login-btn').onclick = async () => {
-      if(isOfflineMode||!auth) { gameState.user={email:adminEmail, displayName:'管理員(離線)'}; resolveStartup(); return; }
+      if(isOfflineMode||!auth) { gameState.user={email:adminEmail, displayName:'指揮官(離線)'}; resolveStartup(); return; }
       try{ await signInWithPopup(auth, new GoogleAuthProvider()); }catch(e){ alert("登入受阻，請確保白名單正確，或未在無痕模式。"); }
     };
     document.getElementById('logout-btn').onclick=()=>(auth?signOut(auth).then(()=>location.reload()):location.reload());
