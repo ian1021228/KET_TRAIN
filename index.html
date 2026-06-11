@@ -81,7 +81,6 @@
           <p id="user-name" class="text-sm font-semibold text-gray-200">未登入</p>
           <p id="user-role-badge" class="text-xs text-purple-400 font-mono">ROLE: PLAYER</p>
         </div>
-        <!-- 核心修復：加入 referrerpolicy="no-referrer" 確保 Google 頭像不會被擋 -->
         <img id="user-avatar" src="" alt="Avatar" class="w-9 h-9 rounded-full border-2 border-purple-500 bg-gray-800 object-cover" referrerpolicy="no-referrer">
         <button id="logout-btn" class="text-gray-400 hover:text-red-400 text-sm p-2 transition-colors" title="登出">
           <i class="fa-solid fa-right-from-bracket"></i>
@@ -153,10 +152,12 @@
             QUEST <span id="question-count-num" class="text-purple-400 font-bold">1</span> / 15
           </span>
         </div>
+        
+        <!-- 移除所有的 Clue 提示標籤，保持畫面最純淨 -->
         <div class="min-h-[100px] flex flex-col justify-center items-center text-center relative z-10">
           <p id="question-prompt" class="text-xl sm:text-2xl font-bold leading-relaxed max-w-lg mx-auto text-gray-100 select-none">載入中...</p>
-          <p id="question-clue" class="text-sm text-gray-400 mt-3 bg-gray-950/40 py-2 px-4 rounded-xl border border-gray-800/40 inline-block max-w-sm hidden">---</p>
         </div>
+        
         <div class="relative z-10">
           <div id="answer-options-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3.5"></div>
           <div id="spelling-input-zone" class="space-y-4 hidden">
@@ -301,7 +302,7 @@
 
     const adminEmail = 'ianw.solar@gmail.com';
     const appId = 'ket-vocabulary-stellar';
-    // ✅ 更新後的資料庫連結
+    // ✅ 全新試算表連結 (資料動態解析)
     const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/1D8ewA8_2ISr0ob7TSAOpcLYfYFjA3815j-7BK9udg6w/export?format=csv";
 
     let db = null; let auth = null; let isOfflineMode = false; let vocabularyList = [];
@@ -313,11 +314,15 @@
       isTransitioning: false, isGameOver: false, selectedIds: new Set(), visibleIds: []
     };
 
-    function getBaseTranslation(text) { return text ? text.split('(')[0].split('（')[0].trim() : ''; }
+    // ✅ 嚴格濾除所有的標籤和括號內容，確保只有純淨中文
+    function getBaseTranslation(text) {
+      if (!text) return '';
+      return text.replace(/[\(\[（].*?[\)\]）]/g, '').trim();
+    }
 
     const views = { signin: document.getElementById('view-signin'), gameplay: document.getElementById('view-gameplay'), gameover: document.getElementById('view-gameover'), admin: document.getElementById('view-admin') };
 
-    // --- 程式初始化機制 (防止死機) ---
+    // --- 程式初始化機制 ---
     let isVocabLoaded = false;
     let isAuthResolved = false;
 
@@ -342,7 +347,6 @@
       document.getElementById('user-profile').classList.remove('hidden');
       document.getElementById('user-name').innerText = gameState.user.displayName || 'Player';
       
-      // ✅ 強制套用 Google 帳號大頭貼
       if (gameState.user.photoURL) {
         document.getElementById('user-avatar').src = gameState.user.photoURL;
       } else {
@@ -373,7 +377,7 @@
       return ret;
     }
 
-    // ✅ 強大且防呆的 AI 智慧題庫解析引擎 (適應任意新格式)
+    // ✅ AI 智慧尋找欄位，不用管格式怎麼變
     async function loadExternalVocabulary() {
       try {
         const res = await fetch(SHEET_CSV_URL);
@@ -381,36 +385,51 @@
         const rows = parseCSVLine(await res.text());
         vocabularyList = [];
         
-        // 智慧尋找對應的欄位索引 (Word / Translation / Clue)
         let wCol = 0, tCol = 1, cCol = 2; 
-        for (let r=1; r<Math.min(rows.length, 10); r++) {
+        for (let r=0; r<Math.min(rows.length, 15); r++) {
            const row = rows[r];
-           if (row.length >= 3) {
-              let foundT = -1, foundC = -1;
+           if (row.length >= 2) {
+              let foundT = -1, foundC = -1, foundW = -1;
               for (let c=0; c<row.length; c++) {
-                 const txt = row[c] || '';
-                 if (/[\u4E00-\u9FFF]/.test(txt)) foundT = c; // 中文必定是翻譯
-                 else if (txt.includes('_') || txt.split(' ').length >= 4) foundC = c; // 含底線或大於4個字的必定是例句
+                 const txt = (row[c] || '').trim();
+                 if (!txt) continue;
+                 
+                 // 有中文字的一定是翻譯
+                 if (/[\u4E00-\u9FFF]/.test(txt)) {
+                    if (foundT === -1) foundT = c;
+                 } else {
+                    const wordCount = txt.split(/\s+/).length;
+                    // 超過4個單字或是帶底線的一定是例句
+                    if (txt.includes('_') || wordCount >= 4 || txt.length > 20) {
+                        if (foundC === -1) foundC = c;
+                    } 
+                    // 剩下的短英文字就是題目單字
+                    else if (wordCount <= 3 && txt.length > 0) {
+                        if (foundW === -1) foundW = c;
+                    }
+                 }
               }
+              if (foundW !== -1) wCol = foundW;
               if (foundT !== -1) tCol = foundT;
               if (foundC !== -1) cCol = foundC;
-              wCol = [0,1,2,3,4].find(x => x !== tCol && x !== cCol && x < row.length) || 0;
-              break;
+              if (foundW !== -1 && foundT !== -1 && foundC !== -1) break;
            }
         }
 
-        for (let i=1; i<rows.length; i++) {
+        for (let i=0; i<rows.length; i++) {
           const row = rows[i];
           if (row.length > Math.max(wCol, cCol, tCol)) {
-             let rawWord = row[wCol].trim();
-             if (!rawWord) continue;
-             // ✅ 清理帶有詞性的單字，例如: "apple (n)" -> "apple"
-             let cleanWord = rawWord.replace(/\(.*\)/g, '').replace(/（.*）/g, '').trim();
+             let rawWord = (row[wCol]||'').trim();
+             // 略過標題行
+             if (!rawWord || rawWord.toLowerCase().includes('word') || rawWord.includes('單字')) continue;
+             
+             // 清理所有的括號詞性，如: baby (n)
+             let cleanWord = rawWord.replace(/[\(\[（].*?[\)\]）]/g, '').trim();
              
              vocabularyList.push({ 
                  word: cleanWord, 
-                 clue: row[cCol].trim(), 
-                 translation: row[tCol].trim() 
+                 clue: (row[cCol]||'').trim(), 
+                 translation: (row[tCol]||'').trim() 
              });
           }
         }
@@ -484,11 +503,13 @@
     }
     document.getElementById('return-admin-btn').onclick = () => navigateToView('admin');
 
-    // ✅ 例句智慧挖空系統：如果試算表中的句子沒有畫底線，會自動將目標單字替換為空格
+    // ✅ 讓例句自動挖空
     function getDisplayClue(word, clue) {
       if (clue.includes('_')) return clue;
-      const reg = new RegExp(`\\b${word}\\b`, 'gi');
-      if (reg.test(clue)) return clue.replace(reg, '_____');
+      try {
+        const reg = new RegExp(`\\b${word}\\b`, 'gi');
+        if (reg.test(clue)) return clue.replace(reg, '_____');
+      } catch(e) {}
       return clue + "\n(請填入: _____)";
     }
 
@@ -500,19 +521,21 @@
       gameState.currentQuestion = pool[Math.floor(Math.random()*pool.length)];
       gameState.currentMode = ['choice','spelling','translate_choice'][Math.floor(Math.random()*3)];
       
-      const qPrompt=document.getElementById('question-prompt'), qClue=document.getElementById('question-clue'), inZone=document.getElementById('spelling-input-zone'), chZone=document.getElementById('answer-options-grid');
+      const qPrompt=document.getElementById('question-prompt'), inZone=document.getElementById('spelling-input-zone'), chZone=document.getElementById('answer-options-grid');
       document.getElementById('trivia-card').classList.remove('animate-shake','border-red-500/40','border-green-500/40');
       document.getElementById('spelling-field').value='';
       
       if(gameState.currentMode==='choice'){
         qPrompt.innerText=getDisplayClue(gameState.currentQuestion.word, gameState.currentQuestion.clue); 
-        qClue.classList.add('hidden'); inZone.classList.add('hidden'); chZone.classList.remove('hidden');
+        inZone.classList.add('hidden'); chZone.classList.remove('hidden');
         generateChoiceButtons(gameState.currentQuestion, 'word');
       } else if(gameState.currentMode==='spelling'){
-        qPrompt.innerText=getBaseTranslation(gameState.currentQuestion.translation); qClue.innerText="請拼出單字"; qClue.classList.remove('hidden'); chZone.classList.add('hidden'); inZone.classList.remove('hidden');
+        qPrompt.innerText=getBaseTranslation(gameState.currentQuestion.translation);
+        chZone.classList.add('hidden'); inZone.classList.remove('hidden');
         setTimeout(()=>document.getElementById('spelling-field').focus(), 150);
       } else {
-        qPrompt.innerHTML=`請選出 <span class="text-yellow-400 underline select-all">${gameState.currentQuestion.word}</span> 的釋義：`; qClue.innerText=`例句: "${gameState.currentQuestion.clue}"`; qClue.classList.remove('hidden'); inZone.classList.add('hidden'); chZone.classList.remove('hidden');
+        qPrompt.innerHTML=`請選出單字的意思：<br><span class="text-yellow-400 underline select-all mt-2 inline-block">${gameState.currentQuestion.word}</span>`;
+        inZone.classList.add('hidden'); chZone.classList.remove('hidden');
         generateChoiceButtons(gameState.currentQuestion, 'translation');
       }
     }
@@ -547,8 +570,10 @@
         if(!gameState.wrongWordsRecord.includes(gameState.currentQuestion.word)) gameState.wrongWordsRecord.push(gameState.currentQuestion.word);
         audio.playWrong(); fxEngine.addBurst(cx,cy,'#ef4444',true); gameState.lives--; gameState.combo=0; gameState.energy=0; gameState.isSupercharged=false;
         card.classList.add('animate-shake','border-red-500/40');
+        
+        // 答錯顯示完整解析
         const modal = document.createElement('div'); modal.className="bg-red-950 border-2 border-red-500 p-5 rounded-2xl absolute inset-4 z-50 text-center flex flex-col justify-center animate-bounce-in";
-        modal.innerHTML=`<p class="text-red-400 font-bold mb-2">正確答案：</p><p class="text-3xl text-white font-bold mb-2 uppercase">${gameState.currentQuestion.word}</p><p class="text-sm text-gray-300">${gameState.currentQuestion.translation}</p>`;
+        modal.innerHTML=`<p class="text-red-400 font-bold mb-2">正確答案：</p><p class="text-3xl text-white font-bold mb-2 uppercase">${gameState.currentQuestion.word}</p><p class="text-sm text-gray-300">${getBaseTranslation(gameState.currentQuestion.translation)}</p>`;
         card.appendChild(modal); setTimeout(()=>{modal.remove(); loadNextQuestion();}, 2200);
       }
       updateHeaderProgressUI();
@@ -628,8 +653,8 @@
       records.sort((a,b)=>b.timestamp-a.timestamp).forEach(r => {
         html += `<div style="border:1px solid #e5e7eb; border-radius:8px; padding:15px; margin-bottom:20px; background-color:#f9fafb;"><h3 style="color:#111827; margin-top:0;">${r.displayName}</h3><ul style="color:#374151; margin-bottom:15px;"><li>測驗時間：${new Date(r.timestamp).toLocaleString('zh-TW')}</li><li>最終得分：<b>${r.score}</b> 分</li><li>答題準確度：<b>${r.accuracy}%</b></li></ul>`;
         if (r.wrongWords&&r.wrongWords.length>0) {
-          html += `<h4 style="color:#dc2626; margin-bottom:10px;">需加強單字清單 (${r.wrongWords.length} 題)：</h4><table style="width:100%; border-collapse:collapse; margin-bottom:10px; font-size:14px;"><thead><tr style="background-color:#fee2e2; color:#991b1b; text-align:left;"><th style="padding:8px; border:1px solid #fca5a5; width:30%;">英文單字</th><th style="padding:8px; border:1px solid #fca5a5;">完整翻譯解析</th></tr></thead><tbody>`;
-          r.wrongWords.forEach(w => { const v=vocabularyList.find(x=>x.word===w); html+=`<tr><td style="padding:8px; border:1px solid #fca5a5; font-weight:bold;">${w}</td><td style="padding:8px; border:1px solid #fca5a5; color:#4b5563;">${v?v.translation:'無翻譯'}</td></tr>`; });
+          html += `<h4 style="color:#dc2626; margin-bottom:10px;">需加強單字清單 (${r.wrongWords.length} 題)：</h4><table style="width:100%; border-collapse:collapse; margin-bottom:10px; font-size:14px;"><thead><tr style="background-color:#fee2e2; color:#991b1b; text-align:left;"><th style="padding:8px; border:1px solid #fca5a5; width:30%;">英文單字</th><th style="padding:8px; border:1px solid #fca5a5;">中文翻譯</th></tr></thead><tbody>`;
+          r.wrongWords.forEach(w => { const v=vocabularyList.find(x=>x.word===w); html+=`<tr><td style="padding:8px; border:1px solid #fca5a5; font-weight:bold;">${w}</td><td style="padding:8px; border:1px solid #fca5a5; color:#4b5563;">${getBaseTranslation(v?v.translation:'無翻譯')}</td></tr>`; });
           html += `</tbody></table>`;
         } else html += `<p style="color:#16a34a; font-weight:bold;">表現極佳！本次無錯單字。</p>`;
         html += `</div>`;
