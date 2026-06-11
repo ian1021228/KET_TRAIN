@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="zh-Hant" class="dark">
 <head>
@@ -154,16 +153,13 @@
           </span>
         </div>
         
-        <!-- 動態題目區 (包含單字或填空句子) -->
         <div class="min-h-[100px] flex flex-col justify-center items-center text-center relative z-10">
           <p id="question-prompt" class="text-xl sm:text-3xl font-bold leading-relaxed max-w-lg mx-auto text-gray-100 select-none">載入中...</p>
           <p id="question-clue" class="text-sm text-gray-400 mt-4 bg-gray-950/40 py-2 px-4 rounded-xl border border-gray-800/40 inline-block max-w-sm hidden">---</p>
         </div>
         
         <div class="relative z-10">
-          <!-- 選擇題區塊 -->
           <div id="answer-options-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3.5"></div>
-          <!-- 手動拼寫區塊 -->
           <div id="spelling-input-zone" class="space-y-4 hidden">
             <div class="relative">
               <input type="text" id="spelling-field" autocomplete="off" placeholder="輸入單字拼寫 (不分大小寫)" class="w-full bg-gray-950 border-2 border-gray-800 rounded-2xl px-5 py-4 text-center text-lg font-bold tracking-widest text-purple-300 focus:outline-none focus:border-purple-500 uppercase">
@@ -228,13 +224,13 @@
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div class="bg-gray-900/40 border border-gray-800 rounded-2xl p-5"><span class="text-xs text-gray-400">總測驗場次</span><p id="widget-total-games" class="text-3xl font-bold mt-2 text-white">0</p></div>
         <div class="bg-gray-900/40 border border-gray-800 rounded-2xl p-5"><span class="text-xs text-gray-400">歷史最高記錄</span><p id="widget-high-score" class="text-3xl font-bold mt-2 text-white">0</p></div>
-        <div class="bg-gray-900/40 border border-gray-800 rounded-2xl p-5"><span class="text-xs text-gray-400">平均分</span><p id="widget-average" class="text-3xl font-bold mt-2 text-white">0</p></div>
+        <div class="bg-gray-900/40 border border-gray-800 rounded-2xl p-5"><span class="text-xs text-gray-400">平均正確率</span><p id="widget-average" class="text-3xl font-bold mt-2 text-white">0%</p></div>
         <div class="bg-gray-900/40 border border-gray-800 rounded-2xl p-5"><span class="text-xs text-gray-400">活躍考生人數</span><p id="widget-players" class="text-3xl font-bold mt-2 text-white">0</p></div>
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div class="lg:col-span-2 bg-gray-900/40 border border-gray-800 rounded-3xl p-6">
-          <h3 class="font-bold text-gray-200 mb-4">測驗成績變化趨勢圖</h3>
+          <h3 class="font-bold text-gray-200 mb-4">測驗成績與正確率趨勢圖</h3>
           <div class="relative w-full h-64 bg-gray-950/40 rounded-2xl border border-gray-800/60 p-4"><canvas id="score-trend-chart"></canvas></div>
         </div>
         <div class="bg-gray-900/40 border border-gray-800 rounded-3xl p-6">
@@ -248,7 +244,12 @@
           <h3 class="font-bold text-gray-200">實時答題歷史明細</h3>
           <div class="flex items-center space-x-2">
             <input type="text" id="admin-search-field" placeholder="搜尋姓名或信箱..." class="bg-gray-950 border border-gray-800 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-purple-500">
-            <button onclick="window.exportAllRecords('pdf')" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl text-sm font-bold"><i class="fa-solid fa-file-export mr-1"></i>匯出全部</button>
+            <button onclick="window.exportWrongWords('pdf')" class="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-lg shadow-red-500/20" title="匯出總錯題加強清單">
+              <i class="fa-solid fa-book-journal-whills mr-1"></i>匯出錯題
+            </button>
+            <button onclick="window.exportAllRecords('pdf')" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-lg shadow-blue-500/20">
+              <i class="fa-solid fa-file-export mr-1"></i>匯出全部
+            </button>
           </div>
         </div>
 
@@ -306,7 +307,6 @@
 
     const adminEmail = 'ianw.solar@gmail.com';
     const appId = 'ket-vocabulary-stellar';
-    // 新版格式試算表連結
     const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/1D8ewA8_2ISr0ob7TSAOpcLYfYFjA3815j-7BK9udg6w/export?format=csv";
 
     let db = null; let auth = null; let isOfflineMode = false; let vocabularyList = [];
@@ -318,7 +318,6 @@
       isTransitioning: false, isGameOver: false, selectedIds: new Set(), visibleIds: []
     };
 
-    // 核心濾除器：去除所有括號內容（包含全形與半形），確保只留下純粹的「中文單字」
     function getBaseTranslation(text) { 
       if (!text) return ''; 
       return text.replace(/[\(\[（].*?[\)\]）]/g, '').trim(); 
@@ -344,7 +343,6 @@
       document.getElementById('user-profile').classList.remove('hidden');
       document.getElementById('user-name').innerText = gameState.user.displayName || 'Player';
       
-      // 強制寫入大頭貼
       if (gameState.user.photoURL) document.getElementById('user-avatar').src = gameState.user.photoURL;
       else document.getElementById('user-avatar').src = "https://api.dicebear.com/7.x/pixel-art/svg?seed=" + gameState.user.uid;
       
@@ -369,7 +367,6 @@
       return ret;
     }
 
-    // AI 智慧掃描器：從 CSV 找出單字、純中文、句子的欄位
     async function loadExternalVocabulary() {
       try {
         const res = await fetch(SHEET_CSV_URL);
@@ -391,15 +388,12 @@
               const charCount = txt.length;
 
               if (isChinese) {
-                 // 找到純中文單字：短、不含句號 -> 加大分！
                  if (charCount <= 12 && !/[。！？]/.test(txt)) scores[c].t += 3;
                  else if (txt.includes('(') || txt.includes('（')) scores[c].t += 1;
-                 else if (charCount > 15 || /[。！？]/.test(txt)) scores[c].t -= 2; // 懲罰長句子
+                 else if (charCount > 15 || /[。！？]/.test(txt)) scores[c].t -= 2;
               } else {
-                 // 找句子：含有底線或長度長 -> 加分！
                  if (txt.includes('_')) scores[c].c += 5;
                  else if (wordCount >= 4 || charCount > 25) scores[c].c += 2;
-                 // 找單字：純英文短字 -> 加分！
                  else if (wordCount <= 3 && charCount > 0 && charCount <= 20) scores[c].w += 2;
               }
            }
@@ -413,7 +407,6 @@
            if (scores[i].c > maxC) { maxC=scores[i].c; cCol=i; }
         }
 
-        // 防碰撞處理
         if (wCol === cCol) cCol = (wCol + 1) % maxCols;
         if (tCol === wCol) tCol = (wCol + 2) % maxCols;
 
@@ -422,7 +415,6 @@
           if (row.length > wCol) {
              let rawWord = (row[wCol]||'').trim();
              if (!rawWord || rawWord.toLowerCase().includes('word') || rawWord.includes('單字')) continue;
-             // 清理所有的括號詞性，如: baby (n)
              let cleanWord = rawWord.replace(/[\(\[（].*?[\)\]）]/g, '').trim();
              vocabularyList.push({ word: cleanWord, clue: (row[cCol]||'').trim(), translation: (row[tCol]||'').trim() });
           }
@@ -497,7 +489,6 @@
     }
     document.getElementById('return-admin-btn').onclick = () => navigateToView('admin');
 
-    // 自動幫句子挖空 (如果試算表忘記加底線)
     function getDisplayClue(word, clue) {
       if (!clue || typeof clue !== 'string' || clue.trim() === '') return `(請拼出單字: ${word.replace(/[a-zA-Z]/g, '_')})`;
       if (clue.includes('_')) return clue;
@@ -521,31 +512,25 @@
       document.getElementById('trivia-card').classList.remove('animate-shake','border-red-500/40','border-green-500/40');
       document.getElementById('spelling-field').value='';
       
-      // ===== 核心體驗變更區塊 =====
       if(gameState.currentMode==='choice'){
-        // 模式 1：句子填空 (只顯示英文句子，完全隱藏中文)
         document.getElementById('question-type-badge').innerText = '句子填空克漏字';
         document.getElementById('question-type-badge').className = 'text-xs bg-purple-500/20 text-purple-300 font-bold px-3 py-1 rounded-full border border-purple-500/30 uppercase tracking-widest font-mono';
         qPrompt.innerText = getDisplayClue(gameState.currentQuestion.word, gameState.currentQuestion.clue); 
-        qClue.classList.add('hidden'); // 隱藏所有提示
+        qClue.classList.add('hidden'); 
         inZone.classList.add('hidden'); chZone.classList.remove('hidden');
         generateChoiceButtons(gameState.currentQuestion, 'word');
-        
       } else if(gameState.currentMode==='spelling'){
-        // 模式 2：中翻英手動拼寫 (顯示「中文單字」，要求拼寫)
         document.getElementById('question-type-badge').innerText = '中翻英手動挑戰';
         document.getElementById('question-type-badge').className = 'text-xs bg-pink-500/20 text-pink-300 font-bold px-3 py-1 rounded-full border border-pink-500/30 uppercase tracking-widest font-mono';
-        qPrompt.innerText = getBaseTranslation(gameState.currentQuestion.translation); // 只拿純中文！
-        qClue.innerText = "請根據上方中文，拼出對應的英文單字"; // 無任何首字母或句子提示
+        qPrompt.innerText = getBaseTranslation(gameState.currentQuestion.translation);
+        qClue.innerText = "請根據上方中文，拼出對應的英文單字"; 
         qClue.classList.remove('hidden'); chZone.classList.add('hidden'); inZone.classList.remove('hidden');
         setTimeout(()=>document.getElementById('spelling-field').focus(), 150);
-        
       } else {
-        // 模式 3：英翻中語意匹配 (顯示英文單字，選出對應的純中文單字)
         document.getElementById('question-type-badge').innerText = '英翻中語意匹配';
         document.getElementById('question-type-badge').className = 'text-xs bg-indigo-500/20 text-indigo-300 font-bold px-3 py-1 rounded-full border border-indigo-500/30 uppercase tracking-widest font-mono';
         qPrompt.innerHTML = `請選出單字的意思：<br><span class="text-yellow-400 text-4xl underline select-all mt-3 inline-block">${gameState.currentQuestion.word}</span>`;
-        qClue.classList.add('hidden'); // 嚴格隱藏英文例句
+        qClue.classList.add('hidden'); 
         inZone.classList.add('hidden'); chZone.classList.remove('hidden');
         generateChoiceButtons(gameState.currentQuestion, 'translation');
       }
@@ -565,12 +550,9 @@
       for(let w of arr){ if(w.word!==correct.word && dist.length<3) dist.push(w); }
       [correct, ...dist].sort(()=>0.5-Math.random()).forEach(opt => {
         const b = document.createElement('button'); b.className="w-full text-left bg-gray-950 hover:bg-gray-800 border-2 border-gray-800 p-4 rounded-2xl text-sm font-semibold transition-all flex items-center justify-between group active:scale-[0.98]";
-        
         const label = document.createElement('span');
-        // 選項也只會拿到「純淨中文」
         label.innerText = type==='word' ? opt.word : getBaseTranslation(opt.translation);
         b.appendChild(label);
-        
         b.innerHTML += '<i class="fa-solid fa-chevron-right text-gray-700 group-hover:text-purple-400 group-hover:translate-x-1 transition-all text-xs"></i>';
         b.onclick=()=>{ b.blur(); evaluateAnswer(opt.word===correct.word); }; grid.appendChild(b);
       });
@@ -596,7 +578,6 @@
         audio.playWrong(); fxEngine.addBurst(cx,cy,'#ef4444',true); gameState.lives--; gameState.combo=0; gameState.energy=0; gameState.isSupercharged=false;
         card.classList.add('animate-shake','border-red-500/40');
         
-        // 答錯顯示完整解析 (這裡會顯示你表格中原始那行帶有完整例句的翻譯)
         const modal = document.createElement('div'); modal.className="bg-red-950 border-2 border-red-500 p-5 rounded-2xl absolute inset-4 z-50 text-center flex flex-col justify-center animate-bounce-in";
         modal.innerHTML=`<p class="text-red-400 font-bold mb-2">正確答案：</p><p class="text-3xl text-white font-bold mb-2 uppercase">${gameState.currentQuestion.word}</p><p class="text-sm text-gray-300">${gameState.currentQuestion.translation}</p>`;
         card.appendChild(modal); setTimeout(()=>{modal.remove(); loadNextQuestion();}, 2200);
@@ -632,8 +613,12 @@
     }
 
     function updateAdminDashboardUI() {
-      const att=gameState.rawAttemptHistory, tg=att.length, hs=tg>0?Math.max(...att.map(a=>a.score)):0, avg=tg>0?Math.round(att.reduce((s,a)=>s+a.score,0)/tg):0;
-      document.getElementById('widget-total-games').innerText=tg; document.getElementById('widget-high-score').innerText=hs; document.getElementById('widget-average').innerText=avg; document.getElementById('widget-players').innerText=new Set(att.map(a=>a.email)).size;
+      const att=gameState.rawAttemptHistory, tg=att.length, hs=tg>0?Math.max(...att.map(a=>a.score)):0;
+      // 計算平均正確率
+      const avgAcc = tg > 0 ? Math.round(att.reduce((s,a)=>s+a.accuracy,0)/tg) : 0;
+      document.getElementById('widget-total-games').innerText=tg; document.getElementById('widget-high-score').innerText=hs; 
+      document.getElementById('widget-average').innerText=avgAcc + '%'; 
+      document.getElementById('widget-players').innerText=new Set(att.map(a=>a.email)).size;
       const kw = document.getElementById('admin-search-field')?.value.toLowerCase().trim() || "";
       renderAdminTable(kw ? att.filter(a=>a.displayName.toLowerCase().includes(kw)||a.email.toLowerCase().includes(kw)) : att);
       renderAdminTrendChart(att); renderWrongWordsSection(att); updateActionBarUI();
@@ -671,6 +656,31 @@
 
     window.exportSelected = (fmt) => executeExportProcessor(gameState.rawAttemptHistory.filter(a=>gameState.selectedIds.has(a.docId)), fmt);
     window.exportAllRecords = (fmt) => executeExportProcessor(gameState.rawAttemptHistory, fmt);
+
+    // 一鍵匯出錯題功能
+    window.exportWrongWords = function(format = 'pdf') {
+      const att = gameState.rawAttemptHistory;
+      if (!att || att.length === 0) return alert("無測驗紀錄可匯出！");
+
+      const m = {};
+      att.forEach(a => { if(a.wrongWords) a.wrongWords.forEach(w => m[w] = (m[w]||0) + 1); });
+      const sortedWrong = Object.entries(m).sort((a,b) => b[1] - a[1]);
+
+      if (sortedWrong.length === 0) return alert("太棒了！目前沒有任何錯題紀錄。");
+
+      let html = `<div style="text-align:center; margin-bottom:30px;"><h2 style="color:#4b5563; font-size:24px;">KET 單字測驗 - 總錯題加強清單</h2><p style="color:#6b7280; font-size:14px;">產出時間：${new Date().toLocaleString('zh-TW')}</p></div>`;
+      html += `<table style="width:100%; border-collapse:collapse; font-size:14px;"><thead><tr style="background-color:#fee2e2; color:#991b1b; text-align:left;"><th style="padding:8px; border:1px solid #fca5a5; width:30%;">英文單字</th><th style="padding:8px; border:1px solid #fca5a5; width:50%;">中文翻譯</th><th style="padding:8px; border:1px solid #fca5a5; width:20%;">錯誤次數</th></tr></thead><tbody>`;
+
+      sortedWrong.forEach(([w, c]) => {
+        const v = vocabularyList.find(x => x.word === w);
+        html += `<tr><td style="padding:8px; border:1px solid #fca5a5; font-weight:bold;">${w}</td><td style="padding:8px; border:1px solid #fca5a5; color:#4b5563;">${getBaseTranslation(v ? v.translation : '無翻譯')}</td><td style="padding:8px; border:1px solid #fca5a5; color:#dc2626; font-weight:bold;">${c} 次</td></tr>`;
+      });
+      html += `</tbody></table>`;
+
+      if (format === 'pdf') {
+        const w = window.open('', '_blank'); w.document.write(`<html><head><title>KET 總錯題清單</title><style>body{font-family:'Microsoft JhengHei',sans-serif;line-height:1.6;padding:20px;} @media print{body{-webkit-print-color-adjust:exact;}}</style></head><body>${html}</body></html>`); w.document.close(); setTimeout(()=>w.print(), 250);
+      }
+    };
 
     function executeExportProcessor(records, format) {
       if (!records||records.length===0) return alert("找不到可匯出的資料！");
@@ -711,7 +721,25 @@
       const ctx=document.getElementById('score-trend-chart'); if(!ctx)return;
       const sorted=[...att].sort((a,b)=>a.timestamp-b.timestamp);
       if(trendChartInstance) trendChartInstance.destroy();
-      trendChartInstance = new Chart(ctx, { type:'line', data:{ labels:sorted.map(a=>{const d=new Date(a.timestamp); return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;}), datasets:[{label:'分數',data:sorted.map(a=>a.score),borderColor:'#8b5cf6',tension:0.3},{label:'答對率(%)',data:sorted.map(a=>a.accuracy),borderColor:'#10b981',tension:0.1}] }, options:{responsive:true,maintainAspectRatio:false} });
+      // 加入雙 Y 軸設定，解決正確率貼在底部的問題
+      trendChartInstance = new Chart(ctx, { 
+        type:'line', 
+        data:{ 
+          labels:sorted.map(a=>{const d=new Date(a.timestamp); return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;}), 
+          datasets:[
+            {label:'分數',data:sorted.map(a=>a.score),borderColor:'#8b5cf6',tension:0.3, yAxisID: 'y'},
+            {label:'答對率(%)',data:sorted.map(a=>a.accuracy),borderColor:'#10b981',tension:0.1, yAxisID: 'y1'}
+          ] 
+        }, 
+        options:{
+          responsive:true,
+          maintainAspectRatio:false,
+          scales: {
+            y: { type: 'linear', display: true, position: 'left', title: { display: true, text: '測驗分數' } },
+            y1: { type: 'linear', display: true, position: 'right', min: 0, max: 100, title: { display: true, text: '答對率 (%)' }, grid: { drawOnChartArea: false } }
+          }
+        } 
+      });
     }
 
     document.getElementById('close-details-btn').onclick=()=>document.getElementById('attempt-details-modal').classList.add('hidden');
