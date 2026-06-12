@@ -84,6 +84,7 @@
           <span id="class-badge-display" class="bg-blue-500/10 border border-blue-500/30 text-blue-400 text-[10px] px-2 py-0.5 rounded font-bold">無班級</span>
         </div>
         <img id="user-avatar" src="" alt="Avatar" class="w-9 h-9 rounded-full border-2 border-purple-500 bg-gray-800 object-cover" referrerpolicy="no-referrer">
+        <!-- 登出按鈕，現在一定會看得到 -->
         <button id="logout-btn" class="text-gray-400 hover:text-red-400 text-sm p-2 transition-colors"><i class="fa-solid fa-right-from-bracket"></i></button>
       </div>
     </div>
@@ -217,7 +218,7 @@
       <!-- Admin Header -->
       <div class="bg-gradient-to-r from-indigo-950/30 via-purple-950/20 to-gray-950 border border-purple-900/30 rounded-3xl p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <span class="bg-purple-500/10 text-purple-300 font-bold border border-purple-500/30 rounded-full px-3 py-1 text-xs font-mono">星際考情控制中心 v4.0</span>
+          <span class="bg-purple-500/10 text-purple-300 font-bold border border-purple-500/30 rounded-full px-3 py-1 text-xs font-mono">星際考情控制中心 v5.0</span>
           <h2 class="text-2xl font-black mt-2 text-white">親愛的老師/管理員，您好！</h2>
         </div>
         <button id="admin-switch-to-game-btn" class="bg-purple-600 hover:bg-purple-500 text-white font-bold px-4 py-2.5 rounded-2xl text-sm transition-all"><i class="fa-solid fa-gamepad mr-1.5"></i>進入科目中心</button>
@@ -401,7 +402,7 @@
     let isVocabInitialLoaded = false;
     let isAuthResolved = false;
 
-    // --- Boot Sequence ---
+    // --- Boot Sequence (修正卡死問題的關鍵，全域解鎖右上角大頭貼) ---
     function resolveStartup() {
       if (!isAuthResolved) return;
       const overlay = document.getElementById('loading-overlay');
@@ -411,19 +412,29 @@
         navigateToView('signin'); return;
       }
       
-      if (gameState.user.email === adminEmail) {
-        overlay.classList.add('opacity-0'); setTimeout(() => overlay.classList.add('hidden'), 500);
-        document.getElementById('user-profile').classList.remove('hidden');
-        document.getElementById('user-name').innerText = gameState.user.displayName;
-        document.getElementById('user-avatar').src = gameState.user.photoURL || `https://api.dicebear.com/7.x/pixel-art/svg?seed=${gameState.user.uid}`;
+      if (!isVocabInitialLoaded) {
+        document.getElementById('loading-text').innerText = "等待多考科雲端引擎同步中...";
+        return; 
+      }
+
+      overlay.classList.add('opacity-0'); setTimeout(() => overlay.classList.add('hidden'), 500);
+
+      // 無論身份為何，只要登入，就解除隱藏右上角的控制列，讓登出按鈕永遠可以使用！
+      document.getElementById('user-profile').classList.remove('hidden');
+      document.getElementById('user-name').innerText = gameState.user.displayName || 'Player';
+      document.getElementById('user-avatar').src = gameState.user.photoURL || `https://api.dicebear.com/7.x/pixel-art/svg?seed=${gameState.user.uid}`;
+
+      // 使用 toLowerCase() 確保大小寫無誤
+      if (gameState.user.email && gameState.user.email.trim().toLowerCase() === adminEmail.trim().toLowerCase()) {
         document.getElementById('user-role-badge').innerText = "ROLE: SUPERVISOR";
         navigateToView('admin');
         return;
       }
 
+      // 學生登入區塊
+      document.getElementById('user-role-badge').innerText = "ROLE: PLAYER";
       document.getElementById('student-class-gate').classList.remove('hidden');
-      document.getElementById('google-login-btn').classList.add('hidden'); // 已登入隱藏按鈕
-      overlay.classList.add('opacity-0'); setTimeout(() => overlay.classList.add('hidden'), 500);
+      document.getElementById('google-login-btn').classList.add('hidden'); // 隱藏原本的登入按鈕
       navigateToView('signin');
     }
 
@@ -555,9 +566,6 @@
       
       gameState.classCode = enteredCode;
       document.getElementById('class-badge-display').innerText = "班級: " + (enteredCode === "FREE" ? "自由練習" : enteredCode);
-      document.getElementById('user-profile').classList.remove('hidden');
-      document.getElementById('user-name').innerText = gameState.user.displayName;
-      if(gameState.user.photoURL) document.getElementById('user-avatar').src = gameState.user.photoURL;
 
       if(!isOfflineMode && db && enteredCode !== "FREE") {
          try {
@@ -623,9 +631,16 @@
 
     function navigateToView(view) {
       gameState.currentView = view;
-      document.getElementById('return-admin-btn').classList.toggle('hidden', !(gameState.user?.email===adminEmail && view!=='admin' && view!=='signin'));
+      document.getElementById('return-admin-btn').classList.toggle('hidden', !(gameState.user?.email && gameState.user.email.toLowerCase()===adminEmail.toLowerCase() && view!=='admin' && view!=='signin'));
       Object.keys(views).forEach(v => views[v].classList.toggle('hidden', v!==view));
       if (view==='gameplay') loadNextQuestion(); else if (view==='admin') loadAdminStatistics();
+    }
+
+    function getDisplayClue(word, clue) {
+      if (!clue || clue.trim() === '') return `(請拼寫出單字: ${word.replace(/[a-zA-Z]/g, '_')})`;
+      if (clue.includes('_')) return clue;
+      try { const reg = new RegExp(`\\b${word}\\b`, 'gi'); if (reg.test(clue)) return clue.replace(reg, '_____'); } catch(e) {}
+      return clue + "\n(請填入: _____)";
     }
 
     function loadNextQuestion() {
@@ -643,20 +658,31 @@
       
       if(gameState.currentMode==='choice'){
         document.getElementById('question-type-badge').innerText = '句子填空克漏字';
-        let cl = gameState.currentQuestion.clue;
-        if(!cl.includes('_')) { try{ const reg=new RegExp(`\\b${gameState.currentQuestion.word}\\b`,'gi'); if(reg.test(cl)) cl=cl.replace(reg,'_____'); else cl+="\n(請填入單字)"; }catch(e){} }
-        qPrompt.innerText = cl; qClue.classList.add('hidden'); inZone.classList.add('hidden'); chZone.classList.remove('hidden');
+        document.getElementById('question-type-badge').className = 'text-xs bg-purple-500/20 text-purple-300 font-bold px-3 py-1 rounded-full border border-purple-500/30 font-mono';
+        qPrompt.innerText = getDisplayClue(gameState.currentQuestion.word, gameState.currentQuestion.clue); 
+        qClue.classList.add('hidden'); inZone.classList.add('hidden'); chZone.classList.remove('hidden');
         generateChoiceButtons(gameState.currentQuestion, 'word');
       } else if(gameState.currentMode==='spelling'){
         document.getElementById('question-type-badge').innerText = '中翻英手動挑戰';
+        document.getElementById('question-type-badge').className = 'text-xs bg-pink-500/20 text-pink-300 font-bold px-3 py-1 rounded-full border border-pink-500/30 font-mono';
         qPrompt.innerText = getBaseTranslation(gameState.currentQuestion.translation);
-        chZone.classList.add('hidden'); inZone.classList.remove('hidden');
+        qClue.innerText = "請根據上方中文，拼寫出對應的英文單字"; 
+        qClue.classList.remove('hidden'); chZone.classList.add('hidden'); inZone.classList.remove('hidden');
         setTimeout(()=>document.getElementById('spelling-field').focus(), 150);
       } else {
         document.getElementById('question-type-badge').innerText = '英翻中語意匹配';
+        document.getElementById('question-type-badge').className = 'text-xs bg-indigo-500/20 text-indigo-300 font-bold px-3 py-1 rounded-full border border-indigo-500/30 font-mono';
         qPrompt.innerHTML = `請選出正確的意思：<br><span class="text-yellow-400 text-4xl underline select-all mt-3 inline-block">${gameState.currentQuestion.word}</span>`;
         qClue.classList.add('hidden'); inZone.classList.add('hidden'); chZone.classList.remove('hidden');
         generateChoiceButtons(gameState.currentQuestion, 'translation');
+      }
+
+      if (gameState.isSupercharged) {
+        document.getElementById('supercharged-alert').classList.remove('-translate-y-full');
+        document.getElementById('trivia-card').classList.add('neon-border-blue');
+      } else {
+        document.getElementById('supercharged-alert').classList.add('-translate-y-full');
+        document.getElementById('trivia-card').classList.remove('neon-border-blue');
       }
     }
 
@@ -946,8 +972,8 @@
     else { isAuthResolved=true; gameState.user=null; resolveStartup(); }
 
     document.getElementById('google-login-btn').onclick = async () => {
-      if(isOfflineMode||!auth) { gameState.user={email:adminEmail, displayName:'管理員'}; resolveStartup(); return; }
-      try{ await signInWithPopup(auth, new GoogleAuthProvider()); }catch(e){ alert("驗證錯誤，請檢查白名單設定。"); }
+      if(isOfflineMode||!auth) { gameState.user={email:adminEmail, displayName:'管理員(離線)'}; resolveStartup(); return; }
+      try{ await signInWithPopup(auth, new GoogleAuthProvider()); }catch(e){ alert("登入受阻，請確保白名單正確，或未在無痕模式。"); }
     };
     document.getElementById('logout-btn').onclick=()=>(auth?signOut(auth).then(()=>location.reload()):location.reload());
     
