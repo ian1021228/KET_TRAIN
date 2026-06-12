@@ -218,7 +218,7 @@
       <!-- Admin Header -->
       <div class="bg-gradient-to-r from-indigo-950/30 via-purple-950/20 to-gray-950 border border-purple-900/30 rounded-3xl p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <span class="bg-purple-500/10 text-purple-300 font-bold border border-purple-500/30 rounded-full px-3 py-1 text-xs font-mono">星際考情控制中心 v5.0</span>
+          <span class="bg-purple-500/10 text-purple-300 font-bold border border-purple-500/30 rounded-full px-3 py-1 text-xs font-mono">星際考情控制中心 v5.1</span>
           <h2 class="text-2xl font-black mt-2 text-white">親愛的老師/管理員，您好！</h2>
         </div>
         <button id="admin-switch-to-game-btn" class="bg-purple-600 hover:bg-purple-500 text-white font-bold px-4 py-2.5 rounded-2xl text-sm transition-all"><i class="fa-solid fa-gamepad mr-1.5"></i>進入科目中心</button>
@@ -402,7 +402,7 @@
     let isVocabInitialLoaded = false;
     let isAuthResolved = false;
 
-    // --- Boot Sequence (修正卡死問題的關鍵，全域解鎖右上角大頭貼) ---
+    // --- Boot Sequence (修復卡死問題的關鍵，全域解鎖右上角大頭貼) ---
     function resolveStartup() {
       if (!isAuthResolved) return;
       const overlay = document.getElementById('loading-overlay');
@@ -968,12 +968,26 @@
     document.getElementById('cancel-clear-btn').onclick=()=>document.getElementById('clear-confirm-modal').classList.add('hidden');
     document.getElementById('confirm-clear-btn').onclick=async()=>{ if(!isOfflineMode&&db){ const q=await getDocs(collection(db,'artifacts',appId,'public','data','scores')); await Promise.all(q.docs.map(d=>deleteDoc(d.ref))); } localStorage.removeItem('ket_scores'); loadAdminStatistics(); document.getElementById('clear-confirm-modal').classList.add('hidden'); };
 
+    // --- Firebase Auth 登入防當機捕捉 ---
     if(auth) onAuthStateChanged(auth, u => { isAuthResolved=true; gameState.user=u||null; resolveStartup(); });
     else { isAuthResolved=true; gameState.user=null; resolveStartup(); }
 
     document.getElementById('google-login-btn').onclick = async () => {
       if(isOfflineMode||!auth) { gameState.user={email:adminEmail, displayName:'管理員(離線)'}; resolveStartup(); return; }
-      try{ await signInWithPopup(auth, new GoogleAuthProvider()); }catch(e){ alert("登入受阻，請確保白名單正確，或未在無痕模式。"); }
+      try{ 
+        await signInWithPopup(auth, new GoogleAuthProvider()); 
+      } catch(e) { 
+        console.error("Login Error:", e);
+        if (e.code === 'auth/unauthorized-domain') {
+           const wantMock = confirm("【網域未授權】\n您似乎正在「AI 預覽視窗」中測試，此動態網址尚未加入 Firebase 白名單。\n\n強烈建議：請前往您的 GitHub Pages 網址進行真實測試。\n\n是否要在當前視窗「強制以模擬管理員」身分進入後台查看介面？");
+           if (wantMock) {
+               gameState.user = {email: adminEmail, displayName: '模擬管理員'};
+               resolveStartup();
+           }
+        } else {
+           alert("登入發生錯誤：" + e.message);
+        }
+      }
     };
     document.getElementById('logout-btn').onclick=()=>(auth?signOut(auth).then(()=>location.reload()):location.reload());
     
