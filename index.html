@@ -1,9 +1,10 @@
+
 <!DOCTYPE html>
 <html lang="zh-Hant" class="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Stellar Multi-Subject Quest & Analytics</title>
+  <title>KET Vocab Quest & Analytics</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -42,127 +43,95 @@
     .neon-border-blue { box-shadow: 0 0 15px rgba(59, 130, 246, 0.3), inset 0 0 15px rgba(59, 130, 246, 0.15); }
     .custom-checkbox { accent-color: #8b5cf6; width: 18px; height: 18px; cursor: pointer; border-radius: 4px; }
     .row-deleting { transform: scale(0.95); opacity: 0; pointer-events: none; transition: all 0.3s ease; }
-    .subject-btn-active { border-color: #a855f7 !important; background-color: rgba(147, 51, 234, 0.2) !important; color: #d8b4fe !important; }
   </style>
 </head>
 <body class="bg-gray-950 text-gray-100 min-h-screen font-sans flex flex-col overflow-x-hidden relative selection:bg-purple-500 selection:text-white">
 
-  <!-- Canvas Particle Background Layer -->
+  <!-- Particle Background Layer -->
   <div class="absolute inset-0 z-0 pointer-events-none overflow-hidden">
     <canvas id="bg-canvas" class="w-full h-full opacity-60"></canvas>
   </div>
 
-  <!-- Global Fullscreen Loading Overlay -->
+  <!-- Loading Screen overlay -->
   <div id="loading-overlay" class="fixed inset-0 bg-gray-950 z-50 flex flex-col items-center justify-center transition-opacity duration-500">
     <div class="relative w-24 h-24 flex items-center justify-center">
       <div class="absolute w-full h-full border-4 border-purple-500/20 border-t-purple-500 rounded-full animate-spin"></div>
       <i class="fa-solid fa-graduation-cap text-3xl text-purple-400 animate-pulse"></i>
     </div>
-    <h2 class="text-xl font-bold mt-6 tracking-widest text-purple-300">MULTI-QUEST ENGINE</h2>
-    <p id="loading-text" class="text-sm text-gray-400 mt-2">安全核心連線與身份驗證中...</p>
+    <h2 class="text-xl font-bold mt-6 tracking-widest text-purple-300">KET VOCAB QUEST</h2>
+    <p id="loading-text" class="text-sm text-gray-400 mt-2">載入系統與安全驗證中...</p>
   </div>
 
-  <!-- Unified Application Header -->
+  <!-- Main Navigation Header -->
   <header class="border-b border-gray-800/80 bg-gray-900/40 backdrop-blur-md sticky top-0 z-40 px-4 py-3">
     <div class="max-w-7xl mx-auto flex items-center justify-between">
       <div class="flex items-center space-x-3">
         <div class="bg-gradient-to-tr from-purple-600 to-indigo-600 p-2 rounded-xl text-white shadow-lg">
-          <i class="fa-solid fa-layer-group text-lg"></i>
+          <i class="fa-solid fa-gamepad text-lg"></i>
         </div>
         <div>
-          <h1 class="font-black text-lg tracking-wider bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent">全科智慧跨星系平台</h1>
-          <p id="vocab-status-text" class="text-xs text-gray-400">正在探測星際資料庫...</p>
+          <h1 class="font-black text-lg tracking-wider bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent">KET 單字星際航行</h1>
+          <p id="vocab-status-text" class="text-xs text-gray-400">連線中...</p>
         </div>
       </div>
-      
       <div id="user-profile" class="flex items-center space-x-3 hidden">
-        <button id="return-admin-btn" class="hidden bg-purple-600/20 hover:bg-purple-600/40 border border-purple-500/50 text-purple-300 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors">
+        <button id="return-admin-btn" class="hidden bg-purple-600/20 hover:bg-purple-600/40 border border-purple-500/50 text-purple-300 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors mr-2">
           <i class="fa-solid fa-gauge mr-1"></i>返回控制台
         </button>
         <div class="text-right hidden sm:block">
           <p id="user-name" class="text-sm font-semibold text-gray-200">未登入</p>
-          <span id="class-badge-display" class="bg-blue-500/10 border border-blue-500/30 text-blue-400 text-[10px] px-2 py-0.5 rounded font-bold">無班級</span>
+          <p id="user-role-badge" class="text-xs text-purple-400 font-mono">ROLE: PLAYER</p>
         </div>
         <img id="user-avatar" src="" alt="Avatar" class="w-9 h-9 rounded-full border-2 border-purple-500 bg-gray-800 object-cover" referrerpolicy="no-referrer">
-        <!-- 登出按鈕，現在一定會看得到 -->
-        <button id="logout-btn" class="text-gray-400 hover:text-red-400 text-sm p-2 transition-colors"><i class="fa-solid fa-right-from-bracket"></i></button>
+        <button id="logout-btn" class="text-gray-400 hover:text-red-400 text-sm p-2 transition-colors" title="登出">
+          <i class="fa-solid fa-right-from-bracket"></i>
+        </button>
       </div>
     </div>
   </header>
 
-  <!-- APPLICATION VIEWS CONTAINER -->
   <main class="flex-grow flex flex-col px-4 py-6 z-10 max-w-7xl w-full mx-auto justify-center">
 
-    <!-- VIEW 1: SIGN IN AND CLASS CODE ENTRY -->
+    <!-- VIEW 1: SIGN IN PAGE -->
     <section id="view-signin" class="max-w-md w-full mx-auto text-center py-10 hidden">
       <div class="bg-gray-900/60 backdrop-blur-xl border border-gray-800 rounded-3xl p-8 shadow-2xl relative overflow-hidden neon-border">
         <div class="absolute -top-10 -right-10 w-40 h-40 bg-purple-600/10 rounded-full blur-3xl"></div>
         <div class="absolute -bottom-10 -left-10 w-40 h-40 bg-indigo-600/10 rounded-full blur-3xl"></div>
-        <div class="w-20 h-20 bg-gradient-to-tr from-purple-500 to-indigo-500 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-purple-500/20">
-          <i class="fa-solid fa-fingerprint text-4xl text-white"></i>
+        <div class="w-20 h-20 bg-gradient-to-tr from-purple-500 to-indigo-500 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-purple-500/20 transform hover:scale-105 transition-transform duration-300">
+          <i class="fa-solid fa-meteor text-4xl text-white"></i>
         </div>
-        <h2 class="text-2xl font-black tracking-wide text-white">開啟星際學習任務</h2>
-        <p class="text-sm text-gray-400 mt-2 mb-6">請先使用您的 Google 帳號進行驗證登入。</p>
-        
-        <button id="google-login-btn" class="w-full flex items-center justify-center space-x-3 bg-white hover:bg-gray-100 text-gray-900 font-bold py-3.5 px-6 rounded-2xl shadow-xl transition-all mb-6">
+        <h2 class="text-2xl font-black tracking-wide text-white">開啟 KET 單字冒險</h2>
+        <p class="text-sm text-gray-400 mt-2 mb-8">為弟弟衝刺 KET 英文檢定！登入後系統將根據身分自動分流至遊戲區或考情管理後台。</p>
+        <button id="google-login-btn" class="w-full flex items-center justify-center space-x-3 bg-white hover:bg-gray-100 text-gray-900 font-bold py-3.5 px-6 rounded-2xl shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98]">
           <i class="fa-brands fa-google text-red-500 text-lg"></i>
-          <span>Google 帳號快速授權</span>
+          <span>Google 帳號快速登入</span>
         </button>
-
-        <!-- Student Area Lock Gate -->
-        <div id="student-class-gate" class="border-t border-gray-800 pt-6 hidden">
-          <label class="block text-left text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">請輸入您的班級代碼 (Class Code)</label>
-          <div class="flex gap-2">
-            <input type="text" id="class-code-field" placeholder="例如: CLASS101" class="flex-1 bg-gray-950 border border-gray-800 rounded-xl px-4 py-3 text-center font-mono font-bold text-purple-300 focus:outline-none focus:border-purple-500 transition-colors uppercase">
-            <button id="submit-class-btn" class="bg-purple-600 hover:bg-purple-500 text-white font-bold px-6 rounded-xl transition-all">進入</button>
-          </div>
-          <p class="text-[11px] text-gray-500 text-left mt-1.5"><i class="fa-regular fa-lightbulb text-yellow-500"></i> 留空直接進入代表「自由練習模式」。</p>
-        </div>
       </div>
     </section>
 
-    <!-- VIEW 2: SUBJECT SELECTOR HUB -->
-    <section id="view-hub" class="max-w-xl w-full mx-auto hidden flex flex-col space-y-6 animate-bounce-in">
-       <div class="bg-gray-900/60 border border-gray-800 rounded-3xl p-6 text-center shadow-xl">
-         <h2 class="text-xl font-black text-white">🚀 歡迎來到星際傳送中心</h2>
-         <p class="text-xs text-gray-400 mt-1">請選擇今天想要切換並練習的科目題庫：</p>
-         
-         <div id="hub-assignment-alert" class="hidden bg-purple-950/40 border border-purple-500/30 rounded-2xl p-4 mt-4 text-left items-start space-x-3">
-           <i class="fa-solid fa-scroll text-purple-400 text-lg mt-0.5"></i>
-           <div>
-             <p class="text-sm font-bold text-purple-300">老師在聯絡簿指派了任務！</p>
-             <p class="text-xs text-gray-400 mt-0.5">指定科目：<span id="assign-sub-name" class="text-yellow-400 font-bold">--</span> | 測驗題數：<span id="assign-sub-count" class="text-yellow-400 font-bold">--</span> 題</p>
-           </div>
-         </div>
-
-         <div id="subject-portals-grid" class="grid grid-cols-2 gap-4 mt-6">
-           <!-- Dynamic portals -->
-         </div>
-       </div>
-    </section>
-
-    <!-- VIEW 3: GAMEPLAY ZONE -->
+    <!-- VIEW 2: GAMEPLAY ZONE -->
     <section id="view-gameplay" class="max-w-xl w-full mx-auto hidden flex flex-col space-y-6">
-      <div class="bg-gray-900/60 border border-gray-800 rounded-2xl p-4 flex items-center justify-between">
+      <div class="bg-gray-900/60 backdrop-blur-md border border-gray-800/80 rounded-2xl p-4 flex items-center justify-between">
         <div class="flex items-center space-x-2">
-          <div class="text-xs text-gray-400 font-mono mr-1">LIVES:</div>
+          <div class="text-xs text-gray-400 font-mono tracking-wider mr-1">LIVES:</div>
           <div id="heart-container" class="flex space-x-1.5"></div>
         </div>
         <div class="text-right">
-          <p id="game-active-subject" class="text-[10px] bg-purple-500/20 text-purple-400 border border-purple-500/30 px-2 py-0.5 rounded font-bold uppercase tracking-wider mb-1 inline-block">SUBJECT</p>
-          <p id="game-score" class="text-2xl font-black text-yellow-400 font-mono leading-none">00000</p>
+          <p class="text-xs text-gray-400 font-mono tracking-wider uppercase">Current Score</p>
+          <p id="game-score" class="text-2xl font-black text-yellow-400 font-mono">00000</p>
         </div>
       </div>
 
       <div class="flex items-center space-x-4">
-        <div class="bg-gradient-to-r from-pink-500/10 to-purple-500/10 border border-purple-500/20 rounded-2xl px-4 py-3 flex items-center space-x-2 flex-1 select-none">
+        <div class="bg-gradient-to-r from-pink-500/10 to-purple-500/10 border border-purple-500/20 rounded-2xl px-4 py-3 flex items-center space-x-2 relative overflow-hidden flex-1 select-none">
           <span class="text-2xl">🔥</span>
           <div>
             <p id="combo-display" class="text-xl font-black tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-purple-400 font-mono">COMBO X0</p>
             <p class="text-[10px] text-purple-300 uppercase tracking-widest font-mono">Combo Power-up</p>
           </div>
         </div>
-        <div id="multiplier-badge" class="bg-gray-900/60 border border-gray-800 rounded-2xl px-5 py-3 text-center min-w-[80px]">
+        <div id="multiplier-badge" class="bg-gray-900/60 border border-gray-800 rounded-2xl px-5 py-3 text-center min-w-[80px] transition-all">
+          <p class="text-[10px] text-gray-400 uppercase tracking-widest font-mono">Multiplier</p>
           <p id="multiplier-text" class="text-xl font-black text-purple-400 font-mono">1.0X</p>
         </div>
       </div>
@@ -172,197 +141,159 @@
         <div id="energy-glow-element" class="absolute inset-0 bg-blue-500/20 mix-blend-screen opacity-0 animate-pulse rounded-full"></div>
       </div>
 
-      <div id="trivia-card" class="bg-gray-900/80 border border-gray-800 rounded-3xl p-6 relative overflow-hidden flex flex-col space-y-6">
-        <div id="supercharged-alert" class="absolute inset-x-0 top-0 bg-gradient-to-r from-blue-600/90 to-purple-600/90 py-1.5 px-4 text-center text-xs font-black tracking-widest text-white animate-pulse transform -translate-y-full transition-transform">
+      <div id="trivia-card" class="bg-gray-900/80 border border-gray-800/80 rounded-3xl p-6 relative overflow-hidden transition-all duration-300 flex flex-col space-y-6">
+        <div id="supercharged-alert" class="absolute inset-x-0 top-0 bg-gradient-to-r from-blue-600/90 to-purple-600/90 py-1.5 px-4 text-center text-xs font-black tracking-widest uppercase text-white animate-pulse transform -translate-y-full transition-transform">
           ⚡ EXTREME ENERGY MODE! SCORE X2! ⚡
         </div>
         <div class="flex items-center justify-between border-b border-gray-800 pb-4">
-          <span id="question-type-badge" class="text-xs font-bold px-3 py-1 rounded-full border uppercase tracking-widest font-mono">載入中</span>
-          <span class="text-xs text-gray-400 font-mono">QUEST <span id="question-count-num" class="text-purple-400 font-bold">1</span> / <span id="question-total-num">15</span></span>
+          <span id="question-type-badge" class="text-xs bg-purple-500/20 text-purple-300 font-bold px-3 py-1 rounded-full border border-purple-500/30 uppercase tracking-widest font-mono">
+            模式載入中
+          </span>
+          <span class="text-xs text-gray-400 font-mono">
+            QUEST <span id="question-count-num" class="text-purple-400 font-bold">1</span> / 15
+          </span>
         </div>
-        <div class="min-h-[100px] flex flex-col justify-center items-center text-center relative z-10">
-          <p id="question-prompt" class="text-xl sm:text-2xl font-bold leading-relaxed max-w-lg mx-auto text-gray-100 select-none">載入中...</p>
-        </div>
-        <div class="relative z-10">
-          <div id="answer-options-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3.5"></div>
-          <div id="spelling-input-zone" class="space-y-4 hidden">
-            <input type="text" id="spelling-field" autocomplete="off" placeholder="在此輸入拼寫答案..." class="w-full bg-gray-950 border-2 border-gray-800 rounded-2xl px-5 py-4 text-center text-lg font-bold tracking-widest text-purple-300 focus:outline-none focus:border-purple-500 uppercase">
-            <button id="spelling-submit-btn" class="w-full py-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-extrabold rounded-2xl shadow-xl transition-transform hover:scale-[1.01]">送出答案 <i class="fa-solid fa-paper-plane ml-2 text-sm"></i></button>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- VIEW 4: GAMEOVER -->
-    <section id="view-gameover" class="max-w-xl w-full mx-auto hidden flex flex-col space-y-6">
-      <div class="bg-gray-900/60 border border-gray-800 rounded-3xl p-8 text-center relative overflow-hidden">
-        <div id="star-award-container" class="flex justify-center space-x-4 mb-4 text-gray-700">
-          <i class="fa-solid fa-star text-4xl transform -rotate-12"></i><i class="fa-solid fa-star text-6xl -translate-y-2"></i><i class="fa-solid fa-star text-4xl transform rotate-12"></i>
-        </div>
-        <h2 id="ending-title" class="text-3xl font-black text-white">任務完成！</h2>
-        <p id="ending-subtitle" class="text-gray-400 mt-2 text-sm">繼續保持，每一次挑戰都是更強的跨越！</p>
-        <div class="grid grid-cols-2 gap-4 my-8">
-          <div class="bg-gray-950/60 border border-gray-800 rounded-2xl p-4"><p class="text-xs text-gray-400 font-mono">最終分數</p><p id="final-score" class="text-3xl font-black text-yellow-400 mt-1">0</p></div>
-          <div class="bg-gray-950/60 border border-gray-800 rounded-2xl p-4"><p class="text-xs text-gray-400 font-mono">答對率</p><p id="accuracy-rate" class="text-3xl font-black text-green-400 mt-1">0%</p></div>
-        </div>
-        <div class="flex gap-3">
-          <button id="gameover-return-hub-btn" class="flex-1 py-4 bg-gray-800 hover:bg-gray-700 text-white font-bold rounded-2xl transition-all">返回科目中心</button>
-          <button id="retry-game-btn" class="flex-1 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold rounded-2xl shadow-lg transition-all">再戰一次</button>
-        </div>
-      </div>
-    </section>
-
-    <!-- VIEW 5: TEACHER/ADMIN CONTROL PANEL -->
-    <section id="view-admin" class="w-full hidden flex flex-col space-y-6">
-      
-      <!-- Admin Header -->
-      <div class="bg-gradient-to-r from-indigo-950/30 via-purple-950/20 to-gray-950 border border-purple-900/30 rounded-3xl p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <span class="bg-purple-500/10 text-purple-300 font-bold border border-purple-500/30 rounded-full px-3 py-1 text-xs font-mono">星際考情控制中心 v5.1</span>
-          <h2 class="text-2xl font-black mt-2 text-white">親愛的老師/管理員，您好！</h2>
-        </div>
-        <button id="admin-switch-to-game-btn" class="bg-purple-600 hover:bg-purple-500 text-white font-bold px-4 py-2.5 rounded-2xl text-sm transition-all"><i class="fa-solid fa-gamepad mr-1.5"></i>進入科目中心</button>
-      </div>
-
-      <!-- CLASSROOM TASK ASSIGNMENT PANEL -->
-      <div class="bg-gray-900/60 border border-purple-500/20 rounded-3xl p-6 shadow-xl relative overflow-hidden">
-        <h3 class="text-base font-black text-gray-200 mb-2 flex items-center"><i class="fa-solid fa-bullhorn text-purple-400 mr-2"></i>聯絡簿任務指派 (Classroom Publisher)</h3>
-        <p class="text-xs text-gray-400 mb-4">點選要發布的試算表科目，設定班級代碼後，該班學生將強制進行指定測驗。</p>
         
-        <div class="space-y-4">
+        <!-- 動態題目區 (包含單字或填空句子) -->
+        <div class="min-h-[100px] flex flex-col justify-center items-center text-center relative z-10">
+          <p id="question-prompt" class="text-xl sm:text-3xl font-bold leading-relaxed max-w-lg mx-auto text-gray-100 select-none">載入中...</p>
+          <p id="question-clue" class="text-sm text-gray-400 mt-4 bg-gray-950/40 py-2 px-4 rounded-xl border border-gray-800/40 inline-block max-w-sm hidden">---</p>
+        </div>
+        
+        <div class="relative z-10">
+          <!-- 選擇題區塊 -->
+          <div id="answer-options-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3.5"></div>
+          <!-- 手動拼寫區塊 -->
+          <div id="spelling-input-zone" class="space-y-4 hidden">
+            <div class="relative">
+              <input type="text" id="spelling-field" autocomplete="off" placeholder="輸入單字拼寫 (不分大小寫)" class="w-full bg-gray-950 border-2 border-gray-800 rounded-2xl px-5 py-4 text-center text-lg font-bold tracking-widest text-purple-300 focus:outline-none focus:border-purple-500 uppercase">
+            </div>
+            <button id="spelling-submit-btn" class="w-full py-4 px-6 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 text-white font-extrabold rounded-2xl shadow-xl transition-all duration-200">
+              送出答案 <i class="fa-solid fa-paper-plane ml-2 text-sm"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 3: GAMEOVER -->
+    <section id="view-gameover" class="max-w-xl w-full mx-auto hidden flex flex-col space-y-6">
+      <div class="bg-gray-900/60 backdrop-blur-md border border-gray-800 rounded-3xl p-8 shadow-2xl relative overflow-hidden text-center">
+        <div id="star-award-container" class="flex justify-center space-x-4 mb-4 text-gray-700">
+          <i class="fa-solid fa-star text-4xl transform -rotate-12"></i>
+          <i class="fa-solid fa-star text-6xl -translate-y-2"></i>
+          <i class="fa-solid fa-star text-4xl transform rotate-12"></i>
+        </div>
+        <h2 id="ending-title" class="text-3xl font-black tracking-wider text-white">任務完成！</h2>
+        <p id="ending-subtitle" class="text-gray-400 mt-2 text-sm">弟弟，這次的 KET 檢定衝刺表現非常亮眼喔！</p>
+        <div class="grid grid-cols-2 gap-4 my-8">
+          <div class="bg-gray-950/60 border border-gray-800 rounded-2xl p-4">
+            <p class="text-xs text-gray-400 font-mono">最終分數</p><p id="final-score" class="text-3xl font-black text-yellow-400 mt-1">0</p>
+          </div>
+          <div class="bg-gray-950/60 border border-gray-800 rounded-2xl p-4">
+            <p class="text-xs text-gray-400 font-mono">答對率</p><p id="accuracy-rate" class="text-3xl font-black text-green-400 mt-1">0%</p>
+          </div>
+        </div>
+        <button id="retry-game-btn" class="w-full py-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold rounded-2xl shadow-lg transition-transform hover:scale-[1.01]">
+          再戰一次！ <i class="fa-solid fa-rotate-left ml-2"></i>
+        </button>
+      </div>
+      <div class="bg-gray-900/40 border border-gray-800/80 rounded-2xl p-6">
+        <h3 class="text-base font-bold text-gray-200 mb-4"><i class="fa-solid fa-trophy text-yellow-500 mr-2"></i>星際排行榜</h3>
+        <div class="overflow-hidden rounded-xl border border-gray-800/60 bg-gray-950/20">
+          <table class="w-full text-left text-sm"><tbody id="leaderboard-tbody"></tbody></table>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 4: ADMIN -->
+    <section id="view-admin" class="w-full hidden flex flex-col space-y-8">
+      <div class="bg-gradient-to-r from-indigo-950/30 via-purple-950/20 to-gray-950 border border-purple-900/30 rounded-3xl p-6 relative overflow-hidden">
+        <div class="relative z-10 flex flex-col md:flex-row justify-between gap-4 items-start md:items-center">
           <div>
-            <p class="text-[10px] font-bold text-gray-500 uppercase mb-2">1. 選擇指定科目 (動態讀取自試算表工作區)</p>
-            <div id="publish-subject-container" class="flex flex-wrap gap-2">
-              <!-- Dynamically populated subject buttons -->
-            </div>
+            <span class="bg-purple-500/10 text-purple-300 font-bold border border-purple-500/30 rounded-full px-3 py-1 text-xs">星際考情控制中心</span>
+            <h2 class="text-2xl font-black mt-2 text-white">親愛的哥哥/老師，您好！</h2>
           </div>
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-gray-950/50 border border-gray-800 p-4 rounded-2xl">
-            <div>
-               <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">2. 發布至班級代碼</label>
-               <input type="text" id="assign-class-code" placeholder="如: CLASSA" class="w-full bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-sm font-mono font-bold text-purple-300 focus:outline-none uppercase">
-            </div>
-            <div>
-               <label class="block text-[10px] font-bold text-gray-500 uppercase mb-1">3. 指定測驗題數</label>
-               <input type="number" id="assign-questions-count" value="15" min="5" max="100" class="w-full bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-sm font-mono text-gray-300 focus:outline-none">
-            </div>
-            <div class="flex items-end">
-               <button id="btn-save-assignment" class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 text-white text-sm font-bold py-2 rounded-xl transition-all shadow-md shadow-purple-900/20"><i class="fa-solid fa-paper-plane mr-1"></i>發布任務</button>
-            </div>
+          <div class="flex gap-3">
+            <button id="admin-clear-records-btn" class="bg-red-900/40 hover:bg-red-600/80 border border-red-500/50 text-red-300 hover:text-white font-bold px-4 py-3 rounded-2xl text-sm transition-colors">
+              <i class="fa-solid fa-trash-can mr-2"></i>清空所有紀錄
+            </button>
+            <button id="admin-switch-to-game-btn" class="bg-purple-600 hover:bg-purple-500 text-white font-bold px-5 py-3 rounded-2xl text-sm transition-colors">
+              <i class="fa-solid fa-play mr-2"></i>進入遊戲測試
+            </button>
           </div>
         </div>
       </div>
 
-      <!-- ANALYTICS FILTER BAR -->
-      <div class="bg-gray-900/80 border border-blue-500/30 rounded-2xl p-4 flex flex-col md:flex-row items-center gap-4">
-         <div class="flex items-center text-blue-400 font-bold text-sm min-w-max"><i class="fa-solid fa-filter mr-2"></i>多維度數據過濾：</div>
-         <div class="flex flex-wrap w-full gap-3">
-            <select id="admin-filter-class" class="bg-gray-950 border border-gray-700 text-gray-200 rounded-xl px-4 py-2 text-sm focus:border-blue-500 focus:outline-none flex-1 min-w-[120px]">
-              <option value="all">所有班級 (All Classes)</option>
-            </select>
-            <select id="admin-filter-subject" class="bg-gray-950 border border-gray-700 text-gray-200 rounded-xl px-4 py-2 text-sm focus:border-blue-500 focus:outline-none flex-1 min-w-[120px]">
-              <option value="all">所有科目 (All Subjects)</option>
-            </select>
-         </div>
-      </div>
-
-      <!-- KPI Widgets Grid -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="bg-gray-900/40 border border-gray-800 rounded-2xl p-5"><span class="text-xs text-gray-400">過濾後總場次</span><p id="widget-total-games" class="text-3xl font-black mt-2 text-white">0</p></div>
-        <div class="bg-gray-900/40 border border-gray-800 rounded-2xl p-5"><span class="text-xs text-gray-400">最高積分</span><p id="widget-high-score" class="text-3xl font-black mt-2 text-yellow-400">0</p></div>
-        <div class="bg-gray-900/40 border border-gray-800 rounded-2xl p-5"><span class="text-xs text-gray-400">平均正確率</span><p id="widget-average" class="text-3xl font-black mt-2 text-green-400">0%</p></div>
-        <div class="bg-gray-900/40 border border-gray-800 rounded-2xl p-5"><span class="text-xs text-gray-400">參與學生人數</span><p id="widget-players" class="text-3xl font-black mt-2 text-blue-400">0</p></div>
+        <div class="bg-gray-900/40 border border-gray-800 rounded-2xl p-5"><span class="text-xs text-gray-400">總測驗場次</span><p id="widget-total-games" class="text-3xl font-bold mt-2 text-white">0</p></div>
+        <div class="bg-gray-900/40 border border-gray-800 rounded-2xl p-5"><span class="text-xs text-gray-400">歷史最高記錄</span><p id="widget-high-score" class="text-3xl font-bold mt-2 text-white">0</p></div>
+        <div class="bg-gray-900/40 border border-gray-800 rounded-2xl p-5"><span class="text-xs text-gray-400">平均分</span><p id="widget-average" class="text-3xl font-bold mt-2 text-white">0</p></div>
+        <div class="bg-gray-900/40 border border-gray-800 rounded-2xl p-5"><span class="text-xs text-gray-400">活躍考生人數</span><p id="widget-players" class="text-3xl font-bold mt-2 text-white">0</p></div>
       </div>
 
-      <!-- Analytics Core Plots Grid -->
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div class="lg:col-span-2 bg-gray-900/40 border border-gray-800 rounded-3xl p-6 flex flex-col justify-between">
-          <h3 class="font-bold text-gray-200 mb-1">班級成績與學習進化折線圖</h3>
-          <p id="chart-desc-text" class="text-xs text-gray-500 mb-4">當前顯示：按測驗時間序列的歷史總覽。</p>
-          <div class="relative w-full h-72 bg-gray-950/40 rounded-2xl border border-gray-800/60 p-4"><canvas id="score-trend-chart"></canvas></div>
+        <div class="lg:col-span-2 bg-gray-900/40 border border-gray-800 rounded-3xl p-6">
+          <h3 class="font-bold text-gray-200 mb-4">測驗成績變化趨勢圖</h3>
+          <div class="relative w-full h-64 bg-gray-950/40 rounded-2xl border border-gray-800/60 p-4"><canvas id="score-trend-chart"></canvas></div>
         </div>
-        <div class="bg-gray-900/40 border border-gray-800 rounded-3xl p-6 flex flex-col justify-between">
-          <h3 class="font-bold text-gray-200 mb-4 flex justify-between items-center">
-             <span>🚨 高頻答錯排行</span>
-             <button onclick="window.exportWrongWords('pdf')" class="text-[10px] bg-red-600/20 text-red-400 border border-red-500/30 px-2 py-1 rounded hover:bg-red-600/40 transition-colors">印錯題本</button>
-          </h3>
-          <div class="flex-grow overflow-y-auto max-h-[280px]"><ul id="weak-words-list" class="space-y-3"></ul></div>
+        <div class="bg-gray-900/40 border border-gray-800 rounded-3xl p-6">
+          <h3 class="font-bold text-gray-200 mb-4">🚨 最常答錯單字</h3>
+          <ul id="weak-words-list" class="space-y-3 max-h-[260px] overflow-y-auto"></ul>
         </div>
       </div>
 
-      <!-- Historical attempts datatable -->
       <div class="bg-gray-900/40 border border-gray-800 rounded-3xl p-6">
         <div class="flex flex-col sm:flex-row justify-between gap-4 mb-4">
-          <h3 class="font-bold text-gray-200">學生成績實時明細表 <span class="text-xs text-gray-500 font-normal ml-2">(點擊學生姓名可查看該生全科雷達詳情)</span></h3>
+          <h3 class="font-bold text-gray-200">實時答題歷史明細</h3>
           <div class="flex items-center space-x-2">
-            <input type="text" id="admin-search-field" placeholder="搜尋姓名..." class="bg-gray-950 border border-gray-800 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-purple-500">
-            <button onclick="window.exportAllRecords('pdf')" class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded-xl text-xs font-bold transition-all shadow-lg"><i class="fa-solid fa-file-export mr-1"></i>匯出報告</button>
+            <input type="text" id="admin-search-field" placeholder="搜尋姓名或信箱..." class="bg-gray-950 border border-gray-800 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-purple-500">
+            <button onclick="window.exportAllRecords('pdf')" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl text-sm font-bold"><i class="fa-solid fa-file-export mr-1"></i>匯出全部</button>
           </div>
         </div>
 
         <div id="admin-action-bar" class="hidden bg-gray-900 border border-purple-500/40 px-5 py-3 rounded-2xl mb-4 items-center justify-between">
-           <div><span class="text-white font-bold text-sm">已選取 <span id="selected-count" class="text-yellow-400">0</span> 項紀錄</span></div>
+           <div><span class="text-white font-bold text-sm">已選取 <span id="selected-count" class="text-yellow-400">0</span> 項</span><span class="text-gray-400 text-xs ml-4 border-l border-gray-700 pl-4">共錯 <span id="selected-wrong-count" class="text-red-400 font-bold mx-1">0</span> 題</span></div>
            <div class="flex space-x-2">
-             <button onclick="window.deleteSelected()" class="bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors">刪除</button>
+             <button onclick="window.deleteSelected()" class="bg-red-500/10 text-red-400 px-3 py-1.5 rounded-lg text-sm font-bold"><i class="fa-solid fa-trash mr-1"></i>刪除</button>
+             <button onclick="window.exportSelected('docx')" class="bg-blue-500/10 text-blue-300 px-3 py-1.5 rounded-lg text-sm font-bold"><i class="fa-solid fa-file-word mr-1"></i>DOCX</button>
+             <button onclick="window.exportSelected('pdf')" class="bg-green-500/10 text-green-300 px-3 py-1.5 rounded-lg text-sm font-bold"><i class="fa-solid fa-file-pdf mr-1"></i>PDF</button>
            </div>
         </div>
 
         <div class="overflow-x-auto rounded-2xl border border-gray-800 bg-gray-950/20">
           <table class="w-full text-left text-sm whitespace-nowrap">
-            <thead class="bg-gray-900/60 text-xs text-gray-400 font-mono">
+            <thead class="bg-gray-900/60 text-xs text-gray-400">
               <tr>
-                <th class="p-4 w-10"><input type="checkbox" id="chk-all" onclick="window.toggleSelectAll()" class="custom-checkbox"></th>
-                <th class="p-4">學生姓名</th><th class="p-4">班級</th><th class="p-4 text-center">科目</th><th class="p-4 text-center">得分</th><th class="p-4 text-center">正確率</th><th class="p-4 text-right">測驗時間</th>
+                <th class="p-4"><input type="checkbox" id="chk-all" onclick="window.toggleSelectAll()" class="custom-checkbox"></th>
+                <th class="p-4">姓名</th><th class="p-4">得分</th><th class="p-4">準確度</th><th class="p-4">日期</th><th class="p-4 text-center">詳情</th>
               </tr>
             </thead>
             <tbody id="attempts-table-body"></tbody>
           </table>
         </div>
-        
-        <div class="mt-6 flex justify-end">
-          <button id="admin-clear-records-btn" class="bg-red-950/40 hover:bg-red-600/80 border border-red-500/50 text-red-300 px-4 py-2 rounded-xl text-xs font-bold transition-all"><i class="fa-solid fa-triangle-exclamation mr-1.5"></i>清空資料庫</button>
-        </div>
       </div>
     </section>
 
-    <!-- MODAL: STUDENT PROFILE (全科能力分析) -->
-    <div id="student-profile-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300">
-      <div class="bg-gray-900 border border-blue-900/50 rounded-3xl p-6 max-w-lg w-full mx-4 transform scale-95 transition-transform duration-300 shadow-2xl">
-        <div class="flex justify-between border-b border-gray-800 pb-3 mb-4">
-          <h3 class="text-lg font-black text-white flex items-center"><i class="fa-solid fa-user-graduate text-blue-400 mr-2"></i>學生全科能力分析卡</h3>
-          <button id="close-profile-btn" class="text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
-        </div>
-        
-        <div class="flex items-center space-x-4 mb-6">
-           <div class="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center text-blue-400 text-xl font-black border border-blue-500/40" id="sp-avatar">S</div>
-           <div>
-             <h4 class="text-xl font-bold text-gray-100" id="sp-name">Student Name</h4>
-             <p class="text-xs text-gray-400 font-mono" id="sp-email">email@domain.com</p>
-           </div>
-        </div>
-
-        <h5 class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">各科挑戰統計 (Subject Performance)</h5>
-        <div class="overflow-hidden rounded-xl border border-gray-800 bg-gray-950/50">
-          <table class="w-full text-left text-sm">
-            <thead class="bg-gray-900 text-xs text-gray-400 font-mono">
-              <tr><th class="p-3">科目 (Subject)</th><th class="p-3 text-center">挑戰次數</th><th class="p-3 text-center">最高分</th><th class="p-3 text-center">平均正確率</th></tr>
-            </thead>
-            <tbody id="sp-tbody" class="divide-y divide-gray-800/50">
-              <!-- Injected by JS -->
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- MODAL: CLEAR ALL CONFIRM -->
+    <!-- MODALS -->
     <div id="clear-confirm-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300">
       <div class="bg-gray-900 border border-red-900/50 rounded-3xl p-6 max-w-sm w-full mx-4 transform scale-95 transition-transform duration-300">
         <h3 class="text-xl font-black text-white text-center mb-4">警告：永久清除資料</h3>
-        <p class="text-gray-400 text-sm mb-6 text-center">確定要刪除所有雲端與本地快取紀錄嗎？此動作將無法還原。</p>
+        <p class="text-gray-400 text-sm mb-6 text-center">確定要刪除所有的歷史測驗紀錄嗎？此動作無法復原。</p>
         <div class="flex space-x-3">
           <button id="cancel-clear-btn" class="flex-1 bg-gray-800 text-gray-300 py-3 rounded-2xl font-bold">取消</button>
           <button id="confirm-clear-btn" class="flex-1 bg-red-600 text-white py-3 rounded-2xl font-bold">確認清除</button>
         </div>
+      </div>
+    </div>
+
+    <div id="attempt-details-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300">
+      <div class="bg-gray-900 border border-purple-900/50 rounded-3xl p-6 max-w-md w-full mx-4 transform scale-95 transition-transform duration-300">
+        <div class="flex justify-between border-b border-gray-800 pb-3 mb-4">
+          <h3 class="text-lg font-black text-white">測驗紀錄詳情</h3>
+          <button id="close-details-btn" class="text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+        </div>
+        <div id="attempt-details-content" class="text-sm text-gray-300 space-y-4 max-h-[60vh] overflow-y-auto pr-2"></div>
       </div>
     </div>
 
@@ -371,71 +302,60 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
     const adminEmail = 'ianw.solar@gmail.com';
     const appId = 'ket-vocabulary-stellar';
-    const SHEET_BASE_GID_URL = "https://docs.google.com/spreadsheets/d/1D8ewA8_2ISr0ob7TSAOpcLYfYFjA3815j-7BK9udg6w/export?format=csv&gid=";
-    
-    // 多工作表 (科目) 定義區 - 可自由替換你的 GID
-    const subjectSheetMap = {
-      "English": "0", 
-      "Mathematics": "165482352",
-      "Science": "489215682"
-    };
+    // 新版格式試算表連結
+    const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/1D8ewA8_2ISr0ob7TSAOpcLYfYFjA3815j-7BK9udg6w/export?format=csv";
 
-    let db = null; let auth = null; let isOfflineMode = false;
-    let masterVocabularyDB = {}; 
-    let currentActiveSubject = "English";
+    let db = null; let auth = null; let isOfflineMode = false; let vocabularyList = [];
 
     const gameState = {
       user: null, currentView: 'signin', score: 0, combo: 0, energy: 0, lives: 5, isSupercharged: false,
       currentQuestionIndex: 0, totalRoundQuestions: 15, correctCount: 0, maxCombo: 0, currentQuestion: null, currentMode: 'choice',
-      wrongWordsRecord: [], rawAttemptHistory: [], filteredHistory: [], unansweredWords: [], wrongWordsPool: [],
-      isTransitioning: false, isGameOver: false, selectedIds: new Set(), visibleIds: [],
-      classCode: "", assignment: null, publishSelectedSubject: "all"
+      wrongWordsRecord: [], rawAttemptHistory: [], unansweredWords: [], wrongWordsPool: [],
+      isTransitioning: false, isGameOver: false, selectedIds: new Set(), visibleIds: []
     };
 
-    function getBaseTranslation(text) { return text ? text.replace(/[\(\[（].*?[\)\]）]/g, '').trim() : ''; }
-    const views = { signin: document.getElementById('view-signin'), hub: document.getElementById('view-hub'), gameplay: document.getElementById('view-gameplay'), gameover: document.getElementById('view-gameover'), admin: document.getElementById('view-admin') };
+    // 核心濾除器：去除所有括號內容（包含全形與半形），確保只留下純粹的「中文單字」
+    function getBaseTranslation(text) { 
+      if (!text) return ''; 
+      return text.replace(/[\(\[（].*?[\)\]）]/g, '').trim(); 
+    }
 
-    let isVocabInitialLoaded = false;
+    const views = { signin: document.getElementById('view-signin'), gameplay: document.getElementById('view-gameplay'), gameover: document.getElementById('view-gameover'), admin: document.getElementById('view-admin') };
+
+    // --- 程式啟動管理器 ---
+    let isVocabLoaded = false;
     let isAuthResolved = false;
 
-    // --- Boot Sequence (修復卡死問題的關鍵，全域解鎖右上角大頭貼) ---
     function resolveStartup() {
-      if (!isAuthResolved) return;
+      if (!isAuthResolved) return; 
       const overlay = document.getElementById('loading-overlay');
-
+      
       if (!gameState.user) {
         overlay.classList.add('opacity-0'); setTimeout(() => overlay.classList.add('hidden'), 500);
         navigateToView('signin'); return;
       }
-      
-      if (!isVocabInitialLoaded) {
-        document.getElementById('loading-text').innerText = "等待多考科雲端引擎同步中...";
-        return; 
-      }
+      if (!isVocabLoaded) { document.getElementById('loading-text').innerText = "等待雲端題庫載入中..."; return; }
 
       overlay.classList.add('opacity-0'); setTimeout(() => overlay.classList.add('hidden'), 500);
-
-      // 無論身份為何，只要登入，就解除隱藏右上角的控制列，讓登出按鈕永遠可以使用！
       document.getElementById('user-profile').classList.remove('hidden');
       document.getElementById('user-name').innerText = gameState.user.displayName || 'Player';
-      document.getElementById('user-avatar').src = gameState.user.photoURL || `https://api.dicebear.com/7.x/pixel-art/svg?seed=${gameState.user.uid}`;
-
-      // 使用 toLowerCase() 確保大小寫無誤
-      if (gameState.user.email && gameState.user.email.trim().toLowerCase() === adminEmail.trim().toLowerCase()) {
-        document.getElementById('user-role-badge').innerText = "ROLE: SUPERVISOR";
+      
+      // 強制寫入大頭貼
+      if (gameState.user.photoURL) document.getElementById('user-avatar').src = gameState.user.photoURL;
+      else document.getElementById('user-avatar').src = "https://api.dicebear.com/7.x/pixel-art/svg?seed=" + gameState.user.uid;
+      
+      const badge = document.getElementById('user-role-badge');
+      if (gameState.user.email === adminEmail) {
+        badge.innerText = "ROLE: SUPERVISOR"; badge.className = "text-xs text-red-400 font-mono font-black tracking-wider animate-pulse";
         navigateToView('admin');
-        return;
+      } else {
+        badge.innerText = "ROLE: PLAYER"; badge.className = "text-xs text-purple-400 font-mono tracking-wider";
+        resetGameState(); navigateToView('gameplay');
       }
-
-      // 學生登入區塊
-      document.getElementById('user-role-badge').innerText = "ROLE: PLAYER";
-      document.getElementById('student-class-gate').classList.remove('hidden');
-      document.getElementById('google-login-btn').classList.add('hidden'); // 隱藏原本的登入按鈕
-      navigateToView('signin');
     }
 
     function parseCSVLine(text) {
@@ -449,76 +369,69 @@
       return ret;
     }
 
-    async function fetchSubjectVocabulary(subName, gid) {
+    // AI 智慧掃描器：從 CSV 找出單字、純中文、句子的欄位
+    async function loadExternalVocabulary() {
       try {
-        const res = await fetch(SHEET_BASE_GID_URL + gid);
-        if (!res.ok) throw new Error("Connection error");
+        const res = await fetch(SHEET_CSV_URL);
+        if (!res.ok) throw new Error("Fetch failed");
         const rows = parseCSVLine(await res.text());
+        vocabularyList = [];
         
-        let subPool = []; let wCol=0, tCol=1, cCol=2;
-        
-        for (let r=1; r<Math.min(rows.length, 10); r++) {
-           if (rows[r].length >= 2) {
-              let fT=-1, fC=-1, fW=-1;
-              for (let c=0; c<rows[r].length; c++) {
-                 const txt = (rows[r][c] || '').trim();
-                 if (!txt) continue;
-                 if (/[\u4E00-\u9FFF]/.test(txt)) { if(fT===-1) fT=c; }
-                 else {
-                    const wc = txt.split(/\s+/).length;
-                    if (txt.includes('_') || wc >= 4 || txt.length > 22) { if(fC===-1) fC=c; }
-                    else if (wc <= 3) { if(fW===-1) fW=c; }
-                 }
+        let maxCols = 0;
+        for (let i=0; i<Math.min(rows.length, 5); i++) maxCols = Math.max(maxCols, rows[i].length);
+        let scores = Array(maxCols).fill(0).map(() => ({ w:0, t:0, c:0 }));
+
+        for (let r=1; r<Math.min(rows.length, 25); r++) {
+           const row = rows[r];
+           for (let c=0; c<row.length; c++) {
+              const txt = (row[c] || '').trim();
+              if (!txt) continue;
+              const isChinese = /[\u4E00-\u9FFF]/.test(txt);
+              const wordCount = txt.split(/\s+/).length;
+              const charCount = txt.length;
+
+              if (isChinese) {
+                 // 找到純中文單字：短、不含句號 -> 加大分！
+                 if (charCount <= 12 && !/[。！？]/.test(txt)) scores[c].t += 3;
+                 else if (txt.includes('(') || txt.includes('（')) scores[c].t += 1;
+                 else if (charCount > 15 || /[。！？]/.test(txt)) scores[c].t -= 2; // 懲罰長句子
+              } else {
+                 // 找句子：含有底線或長度長 -> 加分！
+                 if (txt.includes('_')) scores[c].c += 5;
+                 else if (wordCount >= 4 || charCount > 25) scores[c].c += 2;
+                 // 找單字：純英文短字 -> 加分！
+                 else if (wordCount <= 3 && charCount > 0 && charCount <= 20) scores[c].w += 2;
               }
-              if(fW!==-1) wCol=fW; if(fT!==-1) tCol=fT; if(fC!==-1) cCol=fC;
-              break;
            }
         }
+        
+        let wCol=0, tCol=1, cCol=2;
+        let maxW=-999, maxT=-999, maxC=-999;
+        for (let i=0; i<maxCols; i++) {
+           if (scores[i].w > maxW) { maxW=scores[i].w; wCol=i; }
+           if (scores[i].t > maxT) { maxT=scores[i].t; tCol=i; }
+           if (scores[i].c > maxC) { maxC=scores[i].c; cCol=i; }
+        }
 
-        for (let i=0; i<rows.length; i++) {
-          if (rows[i].length > wCol) {
-             let rawWord = (rows[i][wCol]||'').trim();
+        // 防碰撞處理
+        if (wCol === cCol) cCol = (wCol + 1) % maxCols;
+        if (tCol === wCol) tCol = (wCol + 2) % maxCols;
+
+        for (let i=1; i<rows.length; i++) {
+          const row = rows[i];
+          if (row.length > wCol) {
+             let rawWord = (row[wCol]||'').trim();
              if (!rawWord || rawWord.toLowerCase().includes('word') || rawWord.includes('單字')) continue;
+             // 清理所有的括號詞性，如: baby (n)
              let cleanWord = rawWord.replace(/[\(\[（].*?[\)\]）]/g, '').trim();
-             subPool.push({ word: cleanWord, clue: (rows[i][cCol]||'').trim(), translation: (rows[i][tCol]||'').trim() });
+             vocabularyList.push({ word: cleanWord, clue: (row[cCol]||'').trim(), translation: (row[tCol]||'').trim() });
           }
         }
-        if(subPool.length > 0) masterVocabularyDB[subName] = subPool;
       } catch (e) {
-        console.warn(`${subName} 解析失敗。`);
+        console.error("題庫載入失敗:", e);
+        vocabularyList = [{ word: "ability", clue: "She has the _____ to speak.", translation: "能力" }];
       }
-    }
-
-    async function loadAllSystemVocabularies() {
-      await fetchSubjectVocabulary("English", "0");
-      const promises = Object.entries(subjectSheetMap).map(([sub, gid]) => {
-         if (sub !== "English") return fetchSubjectVocabulary(sub, gid);
-      });
-      await Promise.all(promises);
-      
-      // Fallback
-      if(Object.keys(masterVocabularyDB).length === 0) masterVocabularyDB["English"] = [{ word: "ability", clue: "She has the _____ to speak.", translation: "能力" }];
-      
-      isVocabInitialLoaded = true;
-      document.getElementById('vocab-status-text').innerText = "多考科雲端引擎就緒";
-      
-      // Setup Publish Subject Buttons in Admin
-      const pubContainer = document.getElementById('publish-subject-container');
-      if (pubContainer) {
-         pubContainer.innerHTML = '';
-         ['all', ...Object.keys(masterVocabularyDB)].forEach(sub => {
-            const b = document.createElement('button');
-            b.className = `px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${sub==='all' ? 'subject-btn-active border-purple-500 bg-purple-900/30' : 'border-gray-700 bg-gray-900 text-gray-400 hover:border-gray-500'}`;
-            b.innerText = sub === 'all' ? '不限科目 (綜合)' : sub;
-            b.onclick = () => {
-               gameState.publishSelectedSubject = sub;
-               Array.from(pubContainer.children).forEach(child => { child.classList.remove('subject-btn-active', 'border-purple-500', 'bg-purple-900/30'); child.classList.add('border-gray-700', 'bg-gray-900', 'text-gray-400'); });
-               b.classList.add('subject-btn-active', 'border-purple-500', 'bg-purple-900/30');
-               b.classList.remove('border-gray-700', 'bg-gray-900', 'text-gray-400');
-            };
-            pubContainer.appendChild(b);
-         });
-      }
+      isVocabLoaded = true;
       resolveStartup();
     }
 
@@ -526,9 +439,9 @@
     try {
       const app = initializeApp({ apiKey: "AIzaSyCMwOOb0ib_gl5A2cgqw9Lqfrw8D_zJoQM", authDomain: "ket-training-9b88d.firebaseapp.com", projectId: "ket-training-9b88d", storageBucket: "ket-training-9b88d.firebasestorage.app", messagingSenderId: "1048640604545", appId: "1:1048640604545:web:97763f7dec221ca9eac080" });
       auth = getAuth(app); db = getFirestore(app);
-    } catch (e) { isOfflineMode = true; document.getElementById('notification-banner').classList.remove('hidden'); }
+    } catch (e) { isOfflineMode = true; }
 
-    // --- Effects Engine ---
+    // --- Audio & Particles ---
     class SoundEngine {
       constructor() { this.audioCtx = null; }
       init() { if (!this.audioCtx) this.audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
@@ -556,67 +469,14 @@
       }
     }
 
-    const audio = new SoundEngine(); const fxEngine = new ParticleEngine(document.getElementById('bg-canvas'));
+    const audio = new SoundEngine();
+    const fxEngine = new ParticleEngine(document.getElementById('bg-canvas'));
     function loop(){ fxEngine.update(); if(gameState.isSupercharged && gameState.currentView==='gameplay') fxEngine.addAmbience(); requestAnimationFrame(loop); } loop();
-
-    // --- Student Entry & Hub Flow ---
-    document.getElementById('submit-class-btn').onclick = async () => {
-      const codeField = document.getElementById('class-code-field');
-      const enteredCode = codeField.value.trim().toUpperCase() || "FREE";
-      
-      gameState.classCode = enteredCode;
-      document.getElementById('class-badge-display').innerText = "班級: " + (enteredCode === "FREE" ? "自由練習" : enteredCode);
-
-      if(!isOfflineMode && db && enteredCode !== "FREE") {
-         try {
-           const docSnap = await getDoc(doc(db, "artifacts", appId, "public", "assignments", enteredCode));
-           if(docSnap.exists()) gameState.assignment = docSnap.data();
-         } catch(e) { console.error("任務加載錯誤", e); }
-      }
-      renderSubjectHubUI();
-    };
-
-    function renderSubjectHubUI() {
-       navigateToView('hub');
-       const grid = document.getElementById('subject-portals-grid');
-       const alertWidget = document.getElementById('hub-assignment-alert');
-       grid.innerHTML = '';
-
-       if(gameState.assignment) {
-          alertWidget.classList.remove('hidden'); alertWidget.classList.add('flex');
-          document.getElementById('assign-sub-name').innerText = gameState.assignment.targetSubject === 'all' ? '綜合測驗' : gameState.assignment.targetSubject;
-          document.getElementById('assign-sub-count').innerText = gameState.assignment.count;
-          
-          if(gameState.assignment.targetSubject !== 'all' && masterVocabularyDB[gameState.assignment.targetSubject]) {
-             createPortalButton(gameState.assignment.targetSubject, grid, true);
-             return;
-          }
-       } else { alertWidget.classList.add('hidden'); }
-
-       Object.keys(masterVocabularyDB).forEach(sub => createPortalButton(sub, grid, false));
-    }
-
-    function createPortalButton(subName, container, isAssigned) {
-       const btn = document.createElement('button');
-       btn.className = `p-6 rounded-2xl border-2 text-left transition-all transform active:scale-95 flex flex-col justify-between ${isAssigned ? 'bg-purple-950/40 border-purple-500 hover:bg-purple-900/40':'bg-gray-900/40 border-gray-800 hover:border-purple-500/50'}`;
-       btn.innerHTML = `<div><span class="text-xs uppercase tracking-widest font-mono ${isAssigned?'text-yellow-400':'text-purple-400'} font-bold">${isAssigned?'★ REQUIRED TASK':'ONLINE'}</span><h4 class="text-xl font-black text-white mt-1">${subName}</h4></div><p class="text-xs text-gray-400 mt-4 font-mono">POOL: ${masterVocabularyDB[subName]?.length || 0} ITEMS <i class="fa-solid fa-arrow-right-long ml-2"></i></p>`;
-       btn.onclick = () => { currentActiveSubject = subName; startSubjectExamRound(); };
-       container.appendChild(btn);
-    }
-
-    function startSubjectExamRound() {
-       resetGameState();
-       document.getElementById('game-active-subject').innerText = currentActiveSubject;
-       gameState.totalRoundQuestions = gameState.assignment ? (parseInt(gameState.assignment.count) || 15) : 15;
-       document.getElementById('question-total-num').innerText = gameState.totalRoundQuestions;
-       navigateToView('gameplay');
-    }
 
     function resetGameState() {
       gameState.score=0; gameState.combo=0; gameState.energy=0; gameState.lives=5; gameState.isSupercharged=false;
       gameState.currentQuestionIndex=0; gameState.correctCount=0; gameState.maxCombo=0; gameState.wrongWordsRecord=[];
-      gameState.unansweredWords=[...(masterVocabularyDB[currentActiveSubject] || [])]; 
-      gameState.wrongWordsPool=[]; gameState.isTransitioning=false; gameState.isGameOver=false;
+      gameState.unansweredWords=[...vocabularyList]; gameState.wrongWordsPool=[]; gameState.isTransitioning=false; gameState.isGameOver=false;
       updateHeaderProgressUI();
     }
 
@@ -631,15 +491,20 @@
 
     function navigateToView(view) {
       gameState.currentView = view;
-      document.getElementById('return-admin-btn').classList.toggle('hidden', !(gameState.user?.email && gameState.user.email.toLowerCase()===adminEmail.toLowerCase() && view!=='admin' && view!=='signin'));
-      Object.keys(views).forEach(v => views[v].classList.toggle('hidden', v!==view));
-      if (view==='gameplay') loadNextQuestion(); else if (view==='admin') loadAdminStatistics();
+      document.getElementById('return-admin-btn').classList.toggle('hidden', !(gameState.user?.email===adminEmail && view!=='admin' && view!=='signin'));
+      ['signin','gameplay','gameover','admin'].forEach(v => document.getElementById(`view-${v}`).classList.toggle('hidden', v!==view));
+      if (view==='gameplay') loadNextQuestion(); else if (view==='gameover') populateLeaderboardUI(); else if (view==='admin') loadAdminStatistics();
     }
+    document.getElementById('return-admin-btn').onclick = () => navigateToView('admin');
 
+    // 自動幫句子挖空 (如果試算表忘記加底線)
     function getDisplayClue(word, clue) {
-      if (!clue || clue.trim() === '') return `(請拼寫出單字: ${word.replace(/[a-zA-Z]/g, '_')})`;
+      if (!clue || typeof clue !== 'string' || clue.trim() === '') return `(請拼出單字: ${word.replace(/[a-zA-Z]/g, '_')})`;
       if (clue.includes('_')) return clue;
-      try { const reg = new RegExp(`\\b${word}\\b`, 'gi'); if (reg.test(clue)) return clue.replace(reg, '_____'); } catch(e) {}
+      try {
+        const reg = new RegExp(`\\b${word}\\b`, 'gi');
+        if (reg.test(clue)) return clue.replace(reg, '_____');
+      } catch(e) {}
       return clue + "\n(請填入: _____)";
     }
 
@@ -656,24 +521,32 @@
       document.getElementById('trivia-card').classList.remove('animate-shake','border-red-500/40','border-green-500/40');
       document.getElementById('spelling-field').value='';
       
+      // ===== 核心體驗變更區塊 =====
       if(gameState.currentMode==='choice'){
+        // 模式 1：句子填空 (只顯示英文句子，完全隱藏中文)
         document.getElementById('question-type-badge').innerText = '句子填空克漏字';
-        document.getElementById('question-type-badge').className = 'text-xs bg-purple-500/20 text-purple-300 font-bold px-3 py-1 rounded-full border border-purple-500/30 font-mono';
+        document.getElementById('question-type-badge').className = 'text-xs bg-purple-500/20 text-purple-300 font-bold px-3 py-1 rounded-full border border-purple-500/30 uppercase tracking-widest font-mono';
         qPrompt.innerText = getDisplayClue(gameState.currentQuestion.word, gameState.currentQuestion.clue); 
-        qClue.classList.add('hidden'); inZone.classList.add('hidden'); chZone.classList.remove('hidden');
+        qClue.classList.add('hidden'); // 隱藏所有提示
+        inZone.classList.add('hidden'); chZone.classList.remove('hidden');
         generateChoiceButtons(gameState.currentQuestion, 'word');
+        
       } else if(gameState.currentMode==='spelling'){
+        // 模式 2：中翻英手動拼寫 (顯示「中文單字」，要求拼寫)
         document.getElementById('question-type-badge').innerText = '中翻英手動挑戰';
-        document.getElementById('question-type-badge').className = 'text-xs bg-pink-500/20 text-pink-300 font-bold px-3 py-1 rounded-full border border-pink-500/30 font-mono';
-        qPrompt.innerText = getBaseTranslation(gameState.currentQuestion.translation);
-        qClue.innerText = "請根據上方中文，拼寫出對應的英文單字"; 
+        document.getElementById('question-type-badge').className = 'text-xs bg-pink-500/20 text-pink-300 font-bold px-3 py-1 rounded-full border border-pink-500/30 uppercase tracking-widest font-mono';
+        qPrompt.innerText = getBaseTranslation(gameState.currentQuestion.translation); // 只拿純中文！
+        qClue.innerText = "請根據上方中文，拼出對應的英文單字"; // 無任何首字母或句子提示
         qClue.classList.remove('hidden'); chZone.classList.add('hidden'); inZone.classList.remove('hidden');
         setTimeout(()=>document.getElementById('spelling-field').focus(), 150);
+        
       } else {
+        // 模式 3：英翻中語意匹配 (顯示英文單字，選出對應的純中文單字)
         document.getElementById('question-type-badge').innerText = '英翻中語意匹配';
-        document.getElementById('question-type-badge').className = 'text-xs bg-indigo-500/20 text-indigo-300 font-bold px-3 py-1 rounded-full border border-indigo-500/30 font-mono';
-        qPrompt.innerHTML = `請選出正確的意思：<br><span class="text-yellow-400 text-4xl underline select-all mt-3 inline-block">${gameState.currentQuestion.word}</span>`;
-        qClue.classList.add('hidden'); inZone.classList.add('hidden'); chZone.classList.remove('hidden');
+        document.getElementById('question-type-badge').className = 'text-xs bg-indigo-500/20 text-indigo-300 font-bold px-3 py-1 rounded-full border border-indigo-500/30 uppercase tracking-widest font-mono';
+        qPrompt.innerHTML = `請選出單字的意思：<br><span class="text-yellow-400 text-4xl underline select-all mt-3 inline-block">${gameState.currentQuestion.word}</span>`;
+        qClue.classList.add('hidden'); // 嚴格隱藏英文例句
+        inZone.classList.add('hidden'); chZone.classList.remove('hidden');
         generateChoiceButtons(gameState.currentQuestion, 'translation');
       }
 
@@ -688,11 +561,16 @@
 
     function generateChoiceButtons(correct, type) {
       const grid = document.getElementById('answer-options-grid'); grid.innerHTML='';
-      let dist=[], arr=[...(masterVocabularyDB[currentActiveSubject] || [])].sort(()=>0.5-Math.random());
+      let dist=[], arr=[...vocabularyList].sort(()=>0.5-Math.random());
       for(let w of arr){ if(w.word!==correct.word && dist.length<3) dist.push(w); }
       [correct, ...dist].sort(()=>0.5-Math.random()).forEach(opt => {
         const b = document.createElement('button'); b.className="w-full text-left bg-gray-950 hover:bg-gray-800 border-2 border-gray-800 p-4 rounded-2xl text-sm font-semibold transition-all flex items-center justify-between group active:scale-[0.98]";
-        const label = document.createElement('span'); label.innerText = type==='word' ? opt.word : getBaseTranslation(opt.translation); b.appendChild(label);
+        
+        const label = document.createElement('span');
+        // 選項也只會拿到「純淨中文」
+        label.innerText = type==='word' ? opt.word : getBaseTranslation(opt.translation);
+        b.appendChild(label);
+        
         b.innerHTML += '<i class="fa-solid fa-chevron-right text-gray-700 group-hover:text-purple-400 group-hover:translate-x-1 transition-all text-xs"></i>';
         b.onclick=()=>{ b.blur(); evaluateAnswer(opt.word===correct.word); }; grid.appendChild(b);
       });
@@ -717,6 +595,8 @@
         if(!gameState.wrongWordsRecord.includes(gameState.currentQuestion.word)) gameState.wrongWordsRecord.push(gameState.currentQuestion.word);
         audio.playWrong(); fxEngine.addBurst(cx,cy,'#ef4444',true); gameState.lives--; gameState.combo=0; gameState.energy=0; gameState.isSupercharged=false;
         card.classList.add('animate-shake','border-red-500/40');
+        
+        // 答錯顯示完整解析 (這裡會顯示你表格中原始那行帶有完整例句的翻譯)
         const modal = document.createElement('div'); modal.className="bg-red-950 border-2 border-red-500 p-5 rounded-2xl absolute inset-4 z-50 text-center flex flex-col justify-center animate-bounce-in";
         modal.innerHTML=`<p class="text-red-400 font-bold mb-2">正確答案：</p><p class="text-3xl text-white font-bold mb-2 uppercase">${gameState.currentQuestion.word}</p><p class="text-sm text-gray-300">${gameState.currentQuestion.translation}</p>`;
         card.appendChild(modal); setTimeout(()=>{modal.remove(); loadNextQuestion();}, 2200);
@@ -729,270 +609,130 @@
       const acc = Math.round((gameState.correctCount/gameState.totalRoundQuestions)*100);
       document.getElementById('final-score').innerText=gameState.score; document.getElementById('accuracy-rate').innerText=acc+'%';
       navigateToView('gameover');
-      const payload={uid:gameState.user?.uid||'guest', displayName:gameState.user?.displayName||'訪客', email:gameState.user?.email||'guest', score:gameState.score, totalQuestions:gameState.totalRoundQuestions, correctCount:gameState.correctCount, accuracy:acc, maxCombo:gameState.maxCombo, wrongWords:gameState.wrongWordsRecord, timestamp:Date.now(), classCode: gameState.classCode, subject: currentActiveSubject};
+      const payload={uid:gameState.user?.uid||'guest', displayName:gameState.user?.displayName||'訪客', email:gameState.user?.email||'guest', score:gameState.score, totalQuestions:gameState.totalRoundQuestions, correctCount:gameState.correctCount, accuracy:acc, maxCombo:gameState.maxCombo, wrongWords:gameState.wrongWordsRecord, timestamp:Date.now()};
       if(!isOfflineMode&&db&&gameState.user) try{ await addDoc(collection(db,'artifacts',appId,'public','data','scores'), payload); }catch(e){}
       else { const c=JSON.parse(localStorage.getItem('ket_scores')||'[]'); payload.docId='loc_'+Date.now(); c.push(payload); localStorage.setItem('ket_scores',JSON.stringify(c)); }
-      
-      const tb=document.getElementById('leaderboard-tbody'); tb.innerHTML='';
-      let rec=[]; if(!isOfflineMode&&db) try{ const qs=await getDocs(collection(db,'artifacts',appId,'public','data','scores')); qs.forEach(d=>rec.push(d.data())); }catch(e){}
+    }
+
+    async function populateLeaderboardUI() {
+      let rec=[];
+      if(!isOfflineMode&&db&&gameState.user) try{ const qs=await getDocs(collection(db,'artifacts',appId,'public','data','scores')); qs.forEach(d=>rec.push(d.data())); }catch(e){}
       if(rec.length===0) rec=JSON.parse(localStorage.getItem('ket_scores')||'[]');
-      rec.filter(x=>x.subject === currentActiveSubject).sort((a,b)=>b.score-a.score).slice(0,5).forEach((r,i) => {
+      const tb=document.getElementById('leaderboard-tbody'); tb.innerHTML='';
+      rec.sort((a,b)=>b.score-a.score).slice(0,5).forEach((r,i) => {
         tb.innerHTML+=`<tr class="border-b border-gray-800"><td class="p-3 text-yellow-400">#${i+1}</td><td class="p-3">${r.displayName}</td><td class="p-3 text-right text-yellow-400">${r.score}</td><td class="p-3 text-right text-green-400">${r.accuracy}%</td></tr>`;
       });
     }
 
-    // --- TEACHER CONTROL MODULES ---
     async function loadAdminStatistics() {
       let att=[];
       if(!isOfflineMode&&db&&gameState.user) try{ const qs=await getDocs(collection(db,'artifacts',appId,'public','data','scores')); qs.forEach(d=>att.push({docId:d.id,...d.data()})); }catch(e){}
       if(att.length===0) att=JSON.parse(localStorage.getItem('ket_scores')||'[]');
-      gameState.rawAttemptHistory=att; gameState.selectedIds.clear(); 
-      updateAdminFilterOptions();
-      updateAdminDashboardUI();
+      gameState.rawAttemptHistory=att; gameState.selectedIds.clear(); updateAdminDashboardUI();
     }
-
-    function updateAdminFilterOptions() {
-      const classSelect = document.getElementById('admin-filter-class');
-      const subSelect = document.getElementById('admin-filter-subject');
-      
-      const classes = new Set(gameState.rawAttemptHistory.map(a => a.classCode).filter(c => c && c !== "FREE"));
-      const subjects = new Set(gameState.rawAttemptHistory.map(a => a.subject).filter(s => s));
-
-      classSelect.innerHTML = '<option value="all">所有班級 (All Classes)</option>';
-      classes.forEach(c => classSelect.innerHTML += `<option value="${c}">${c}</option>`);
-
-      subSelect.innerHTML = '<option value="all">所有科目 (All Subjects)</option>';
-      Object.keys(masterVocabularyDB).forEach(s => subSelect.innerHTML += `<option value="${s}">${s}</option>`);
-    }
-
-    // Handle dropdown changes
-    document.getElementById('admin-filter-class').onchange = updateAdminDashboardUI;
-    document.getElementById('admin-filter-subject').onchange = updateAdminDashboardUI;
-    document.getElementById('admin-search-field').oninput = updateAdminDashboardUI;
 
     function updateAdminDashboardUI() {
-      const fClass = document.getElementById('admin-filter-class').value;
-      const fSub = document.getElementById('admin-filter-subject').value;
+      const att=gameState.rawAttemptHistory, tg=att.length, hs=tg>0?Math.max(...att.map(a=>a.score)):0, avg=tg>0?Math.round(att.reduce((s,a)=>s+a.score,0)/tg):0;
+      document.getElementById('widget-total-games').innerText=tg; document.getElementById('widget-high-score').innerText=hs; document.getElementById('widget-average').innerText=avg; document.getElementById('widget-players').innerText=new Set(att.map(a=>a.email)).size;
       const kw = document.getElementById('admin-search-field')?.value.toLowerCase().trim() || "";
-
-      // 1. Data Filtering
-      gameState.filteredHistory = gameState.rawAttemptHistory.filter(a => {
-         const matchClass = fClass === 'all' || a.classCode === fClass;
-         const matchSub = fSub === 'all' || a.subject === fSub;
-         const matchKw = !kw || a.displayName.toLowerCase().includes(kw) || a.email.toLowerCase().includes(kw);
-         return matchClass && matchSub && matchKw;
-      });
-
-      const att = gameState.filteredHistory;
-      const tg = att.length;
-      const hs = tg > 0 ? Math.max(...att.map(a=>a.score)) : 0;
-      const avgAcc = tg > 0 ? Math.round(att.reduce((s,a)=>s+a.accuracy,0)/tg) : 0;
-      
-      document.getElementById('widget-total-games').innerText = tg; 
-      document.getElementById('widget-high-score').innerText = hs; 
-      document.getElementById('widget-average').innerText = avgAcc + '%'; 
-      document.getElementById('widget-players').innerText = new Set(att.map(a=>a.email)).size;
-      
-      renderAdminTable(att);
-      renderWrongWordsSection(att);
-
-      // 2. Chart Logic Switching
-      const chartDesc = document.getElementById('chart-desc-text');
-      if (fClass !== 'all' && fSub !== 'all') {
-         chartDesc.innerText = `當前顯示：【${fClass}】班級在【${fSub}】科目的歷次作答平均進步趨勢。`;
-         renderAttemptBasedChart(att);
-      } else {
-         chartDesc.innerText = `當前顯示：按測驗時間序列的歷史總覽。`;
-         renderAdminTrendChart(att);
-      }
-      updateActionBarUI();
+      renderAdminTable(kw ? att.filter(a=>a.displayName.toLowerCase().includes(kw)||a.email.toLowerCase().includes(kw)) : att);
+      renderAdminTrendChart(att); renderWrongWordsSection(att); updateActionBarUI();
     }
-
-    function renderAttemptBasedChart(att) {
-      const ctx=document.getElementById('score-trend-chart'); if(!ctx)return;
-      // Group by student email
-      const studentAtts = {};
-      att.forEach(a => { if(!studentAtts[a.email]) studentAtts[a.email]=[]; studentAtts[a.email].push(a); });
-      Object.keys(studentAtts).forEach(e => studentAtts[e].sort((a,b)=>a.timestamp-b.timestamp));
-
-      let maxAttempts = 0;
-      Object.values(studentAtts).forEach(arr => { if(arr.length > maxAttempts) maxAttempts = arr.length; });
-
-      const labels = [], avgScores = [], avgAccs = [];
-      for(let i=0; i<maxAttempts; i++) {
-         labels.push(`第 ${i+1} 次挑戰`);
-         let sumS=0, sumA=0, count=0;
-         Object.values(studentAtts).forEach(arr => { if(arr[i]) { sumS+=arr[i].score; sumA+=arr[i].accuracy; count++; } });
-         avgScores.push(Math.round(sumS/count)); avgAccs.push(Math.round(sumA/count));
-      }
-
-      if(trendChartInstance) trendChartInstance.destroy();
-      trendChartInstance = new Chart(ctx, { 
-        type:'line', 
-        data:{ labels, datasets:[ {label:'全班平均分數', data:avgScores, borderColor:'#8b5cf6', tension:0.3, yAxisID: 'y'}, {label:'全班平均正確率(%)', data:avgAccs, borderColor:'#10b981', tension:0.1, yAxisID: 'y1'} ] }, 
-        options:{ responsive:true, maintainAspectRatio:false, scales: { y: { type: 'linear', display: true, position: 'left', title: { display: true, text: '平均積分' } }, y1: { type: 'linear', display: true, position: 'right', min: 0, max: 100, title: { display: true, text: '平均正確率 (%)' }, grid: { drawOnChartArea: false } } } } 
-      });
-    }
-
-    function renderAdminTrendChart(att) {
-      const ctx=document.getElementById('score-trend-chart'); if(!ctx)return;
-      const sorted=[...att].sort((a,b)=>a.timestamp-b.timestamp);
-      if(trendChartInstance) trendChartInstance.destroy();
-      trendChartInstance = new Chart(ctx, { 
-        type:'line', 
-        data:{ labels:sorted.map(a=>{const d=new Date(a.timestamp); return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;}), datasets:[ {label:'分數',data:sorted.map(a=>a.score),borderColor:'#8b5cf6',tension:0.3, yAxisID: 'y'}, {label:'正確率(%)',data:sorted.map(a=>a.accuracy),borderColor:'#10b981',tension:0.1, yAxisID: 'y1'} ] }, 
-        options:{ responsive:true, maintainAspectRatio:false, scales: { y: { type: 'linear', display: true, position: 'left', title: { display: true, text: '積分' } }, y1: { type: 'linear', display: true, position: 'right', min: 0, max: 100, title: { display: true, text: '正確率 (%)' }, grid: { drawOnChartArea: false } } } } 
-      });
-    }
-
-    // 發布任務邏輯
-    document.getElementById('btn-save-assignment').onclick = async () => {
-       const classCode = document.getElementById('assign-class-code').value.trim().toUpperCase();
-       const targetSubject = gameState.publishSelectedSubject;
-       const count = document.getElementById('assign-questions-count').value;
-       if(!classCode) return alert("班級代碼不能為空！");
-       if(!isOfflineMode && db) {
-          try {
-             await setDoc(doc(db, "artifacts", appId, "public", "assignments", classCode), { classCode, targetSubject, count: parseInt(count), timestamp: Date.now() });
-             alert(`✅ 任務發布成功！\n學生輸入代碼【${classCode}】，將被鎖定挑戰【${targetSubject === 'all' ? '所有科目' : targetSubject}】(${count}題)！`);
-          } catch(e) { alert("發布失敗，請確認資料庫權限。"); }
-       } else alert("離線模式無法寫入雲端。");
-    };
 
     function renderAdminTable(data) {
       const tb=document.getElementById('attempts-table-body'); tb.innerHTML='';
       const sorted=[...data].sort((a,b)=>b.timestamp-a.timestamp); gameState.visibleIds=sorted.map(a=>a.docId);
       sorted.forEach(a => {
         const ds=new Date(a.timestamp).toLocaleDateString('zh-TW',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
-        tb.innerHTML+=`<tr id="row-${a.docId}" class="border-b border-gray-800"><td class="p-4"><input type="checkbox" id="chk-${a.docId}" onclick="window.toggleSelect('${a.docId}')" class="custom-checkbox" ${gameState.selectedIds.has(a.docId)?'checked':''}></td><td class="p-4 font-bold text-gray-200 cursor-pointer hover:text-blue-400" onclick="window.showStudentProfile('${a.email}')">${a.displayName} <i class="fa-solid fa-square-poll-vertical text-[10px] ml-1"></i></td><td class="p-4 text-xs font-mono text-blue-400">${a.classCode||'自由練習'}</td><td class="p-4 text-center text-xs bg-purple-500/10 text-purple-300 rounded border border-purple-500/20">${a.subject||'English'}</td><td class="p-4 text-center font-black text-yellow-400 font-mono">${a.score}</td><td class="p-4 text-center font-bold text-green-400">${a.accuracy}%</td><td class="p-4 text-right font-mono text-gray-500 text-xs">${ds}</td></tr>`;
+        tb.innerHTML+=`<tr id="row-${a.docId}" class="border-b border-gray-800"><td class="p-4"><input type="checkbox" id="chk-${a.docId}" onclick="window.toggleSelect('${a.docId}')" class="custom-checkbox" ${gameState.selectedIds.has(a.docId)?'checked':''}></td><td class="p-4">${a.displayName}</td><td class="p-4 text-yellow-400">${a.score}</td><td class="p-4">${a.accuracy}%</td><td class="p-4">${ds}</td><td class="p-4 text-center"><button onclick="window.showAttemptDetails('${a.docId}')" class="text-purple-400"><i class="fa-solid fa-magnifying-glass"></i></button></td></tr>`;
       });
+      const chkAll = document.getElementById('chk-all');
+      if (chkAll) chkAll.checked = gameState.visibleIds.length>0 && gameState.visibleIds.every(id=>gameState.selectedIds.has(id));
     }
 
-    // 學生雷達詳情卡
-    window.showStudentProfile = function(email) {
-      const studentAtts = gameState.rawAttemptHistory.filter(a => a.email === email);
-      if(studentAtts.length === 0) return;
-      const baseInfo = studentAtts[0];
-      
-      document.getElementById('sp-name').innerText = baseInfo.displayName;
-      document.getElementById('sp-email').innerText = baseInfo.email;
-      document.getElementById('sp-avatar').innerText = baseInfo.displayName.charAt(0).toUpperCase();
-
-      const subStats = {};
-      studentAtts.forEach(a => {
-         const s = a.subject || 'English';
-         if(!subStats[s]) subStats[s] = { count: 0, bestScore: 0, totalAcc: 0 };
-         subStats[s].count++;
-         subStats[s].totalAcc += a.accuracy;
-         if(a.score > subStats[s].bestScore) subStats[s].bestScore = a.score;
-      });
-
-      const tbody = document.getElementById('sp-tbody'); tbody.innerHTML = '';
-      Object.keys(subStats).forEach(sub => {
-         const stat = subStats[sub];
-         const avgAcc = Math.round(stat.totalAcc / stat.count);
-         tbody.innerHTML += `<tr><td class="p-3 font-bold text-purple-300">${sub}</td><td class="p-3 text-center text-gray-300">${stat.count}</td><td class="p-3 text-center font-mono text-yellow-400">${stat.bestScore}</td><td class="p-3 text-center font-mono font-bold text-green-400">${avgAcc}%</td></tr>`;
-      });
-
-      document.getElementById('student-profile-modal').classList.remove('hidden');
-      setTimeout(() => { document.getElementById('student-profile-modal').classList.remove('opacity-0'); document.getElementById('student-profile-modal').querySelector('div').classList.remove('scale-95'); }, 10);
-    };
-    document.getElementById('close-profile-btn').onclick = () => { document.getElementById('student-profile-modal').classList.add('opacity-0'); document.getElementById('student-profile-modal').querySelector('div').classList.add('scale-95'); setTimeout(() => document.getElementById('student-profile-modal').classList.add('hidden'), 300); };
-
-    function renderWrongWordsSection(att) {
-      const el=document.getElementById('weak-words-list'); el.innerHTML=''; const m={};
-      att.forEach(a=> { if(a.wrongWords) a.wrongWords.forEach(w=> m[w]=(m[w]||0)+1); });
-      const top=Object.entries(m).sort((a,b)=>b[1]-a[1]).slice(0,5);
-      if(top.length===0) { el.innerHTML='<li class="text-gray-500 text-center py-10">尚無錯題！</li>'; return; }
-      top.forEach(([w,c]) => { 
-        let v=null; Object.values(masterVocabularyDB).forEach(pool => { const f=pool.find(x=>x.word===w); if(f) v=f; });
-        el.innerHTML+=`<li class="bg-gray-950/40 border border-gray-800 p-4 rounded-2xl flex justify-between"><div><p class="text-red-400 font-bold uppercase">${w}</p><p class="text-xs text-gray-400">${getBaseTranslation(v?v.translation:'多學科混考項目')}</p></div><span class="text-red-300 bg-red-900/50 px-2 py-1 rounded text-xs">錯 ${c} 次</span></li>`; 
-      });
-    }
-
-    // UI & Action Handlers
     window.toggleSelect = (id) => { gameState.selectedIds.has(id)?gameState.selectedIds.delete(id):gameState.selectedIds.add(id); document.getElementById('chk-all').checked=gameState.visibleIds.every(x=>gameState.selectedIds.has(x)); updateActionBarUI(); };
     window.toggleSelectAll = () => { const chk=document.getElementById('chk-all').checked; gameState.visibleIds.forEach(id=>{ chk?gameState.selectedIds.add(id):gameState.selectedIds.delete(id); const c=document.getElementById(`chk-${id}`); if(c)c.checked=chk; }); updateActionBarUI(); };
+    
     function updateActionBarUI() {
       const bar=document.getElementById('admin-action-bar'); bar.classList.toggle('hidden',gameState.selectedIds.size===0); bar.classList.toggle('flex',gameState.selectedIds.size>0);
       document.getElementById('selected-count').innerText=gameState.selectedIds.size;
       let wc=0; gameState.selectedIds.forEach(id=>{ const r=gameState.rawAttemptHistory.find(a=>a.docId===id); if(r&&r.wrongWords) wc+=r.wrongWords.length; }); document.getElementById('selected-wrong-count').innerText=wc;
     }
 
+    document.getElementById('admin-search-field').oninput = updateAdminDashboardUI;
+
     window.deleteSelected = async () => {
-      if(!confirm('確定刪除紀錄?')) return;
+      if(!confirm('確定刪除選取的紀錄?')) return;
       const ids=Array.from(gameState.selectedIds); ids.forEach(id=>{ const r=document.getElementById(`row-${id}`); if(r)r.classList.add('row-deleting'); });
       if(!isOfflineMode&&db) await Promise.all(ids.map(id=>deleteDoc(doc(db,'artifacts',appId,'public','data','scores',id))));
+      else localStorage.setItem('ket_scores',JSON.stringify(JSON.parse(localStorage.getItem('ket_scores')).filter(a=>!ids.includes(a.docId))));
       setTimeout(()=>{ gameState.rawAttemptHistory=gameState.rawAttemptHistory.filter(a=>!ids.includes(a.docId)); gameState.selectedIds.clear(); updateAdminDashboardUI(); }, 300);
     };
 
     window.exportSelected = (fmt) => executeExportProcessor(gameState.rawAttemptHistory.filter(a=>gameState.selectedIds.has(a.docId)), fmt);
-    window.exportAllRecords = (fmt) => executeExportProcessor(gameState.filteredHistory, fmt);
-    document.getElementById('gameover-return-hub-btn').onclick = () => renderSubjectHubUI();
-    document.getElementById('admin-switch-to-game-btn').onclick = () => renderSubjectHubUI();
-    document.getElementById('retry-game-btn').onclick = () => startSubjectExamRound();
-
-    // Export Handlers
-    window.exportWrongWords = function(format = 'pdf') {
-      const att = gameState.filteredHistory; if (!att || att.length === 0) return alert("無測驗紀錄！");
-      const m = {}; att.forEach(a => { if(a.wrongWords) a.wrongWords.forEach(w => m[w] = (m[w]||0) + 1); });
-      const sortedWrong = Object.entries(m).sort((a,b) => b[1] - a[1]);
-      if (sortedWrong.length === 0) return alert("目前沒有任何錯題。");
-      let html = `<div style="text-align:center; margin-bottom:30px;"><h2 style="color:#4b5563; font-size:24px;">KET 錯題加強彙整清單</h2></div><table style="width:100%; border-collapse:collapse; font-size:14px;"><thead><tr style="background-color:#fee2e2; color:#991b1b; text-align:left;"><th style="padding:8px; border:1px solid #fca5a5; width:30%;">英文單字</th><th style="padding:8px; border:1px solid #fca5a5; width:50%;">中文翻譯</th><th style="padding:8px; border:1px solid #fca5a5; width:20%;">總錯次數</th></tr></thead><tbody>`;
-      sortedWrong.forEach(([w, c]) => {
-        let v = null; Object.values(masterVocabularyDB).forEach(pool => { const f=pool.find(x=>x.word===w); if(f) v=f; });
-        html += `<tr><td style="padding:8px; border:1px solid #fca5a5; font-weight:bold;">${w}</td><td style="padding:8px; border:1px solid #fca5a5; color:#4b5563;">${getBaseTranslation(v ? v.translation : '各科綜合項目')}</td><td style="padding:8px; border:1px solid #fca5a5; color:#dc2626; font-weight:bold;">${c} 次</td></tr>`;
-      });
-      html += `</tbody></table>`;
-      const w = window.open('', '_blank'); w.document.write(`<html><head><title>總錯題加強本</title><style>body{font-family:'Microsoft JhengHei',sans-serif;padding:20px;}</style></head><body>${html}</body></html>`); w.document.close(); setTimeout(()=>w.print(), 250);
-    };
+    window.exportAllRecords = (fmt) => executeExportProcessor(gameState.rawAttemptHistory, fmt);
 
     function executeExportProcessor(records, format) {
-      if (!records||records.length===0) return alert("無資料可供匯出！");
-      let html = `<div style="text-align:center; margin-bottom:30px;"><h2 style="color:#4b5563; font-size:24px;">學生成績分析報告</h2></div>`;
+      if (!records||records.length===0) return alert("找不到可匯出的資料！");
+      let html = `<div style="text-align:center; margin-bottom:30px;"><h2 style="color:#4b5563; font-size:24px;">KET 單字測驗 錯題與成績分析報告</h2><p style="color:#6b7280; font-size:14px;">產出時間：${new Date().toLocaleString('zh-TW')}</p></div>`;
       records.sort((a,b)=>b.timestamp-a.timestamp).forEach(r => {
-        html += `<div style="border:1px solid #e5e7eb; padding:15px; margin-bottom:20px; background-color:#f9fafb;"><h3>${r.displayName} (${r.classCode||'自由練習'})</h3><p>考科：<b>${r.subject}</b> | 得分：<b>${r.score}</b> | 正確率：<b>${r.accuracy}%</b></p>`;
-        if (r.wrongWords&&r.wrongWords.length>0) html += `<p style="color:#dc2626; font-weight:bold;">錯題項目：${r.wrongWords.join(', ')}</p>`;
-        else html += `<p style="color:#16a34a; font-weight:bold;">完美答對！</p>`;
+        html += `<div style="border:1px solid #e5e7eb; border-radius:8px; padding:15px; margin-bottom:20px; background-color:#f9fafb;"><h3 style="color:#111827; margin-top:0;">${r.displayName}</h3><ul style="color:#374151; margin-bottom:15px;"><li>測驗時間：${new Date(r.timestamp).toLocaleString('zh-TW')}</li><li>最終得分：<b>${r.score}</b> 分</li><li>答題準確度：<b>${r.accuracy}%</b></li></ul>`;
+        if (r.wrongWords&&r.wrongWords.length>0) {
+          html += `<h4 style="color:#dc2626; margin-bottom:10px;">需加強單字清單 (${r.wrongWords.length} 題)：</h4><table style="width:100%; border-collapse:collapse; margin-bottom:10px; font-size:14px;"><thead><tr style="background-color:#fee2e2; color:#991b1b; text-align:left;"><th style="padding:8px; border:1px solid #fca5a5; width:30%;">英文單字</th><th style="padding:8px; border:1px solid #fca5a5;">中文翻譯</th></tr></thead><tbody>`;
+          r.wrongWords.forEach(w => { const v=vocabularyList.find(x=>x.word===w); html+=`<tr><td style="padding:8px; border:1px solid #fca5a5; font-weight:bold;">${w}</td><td style="padding:8px; border:1px solid #fca5a5; color:#4b5563;">${getBaseTranslation(v?v.translation:'無翻譯')}</td></tr>`; });
+          html += `</tbody></table>`;
+        } else html += `<p style="color:#16a34a; font-weight:bold;">表現極佳！本次無錯單字。</p>`;
         html += `</div>`;
       });
       if (format === 'docx') {
-        const source = 'data:application/vnd.ms-word;charset=utf-8,' + encodeURIComponent("<html xmlns:o='urn:schemas-microsoft-com:office:office'><head><meta charset='utf-8'></head><body>" + html + "</body></html>");
-        const link = document.createElement("a"); link.href=source; link.download=`考試數據報告_${Date.now()}.doc`; link.click();
+        const source = 'data:application/vnd.ms-word;charset=utf-8,' + encodeURIComponent("<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>KET 測驗報告</title><style>body{font-family:'Microsoft JhengHei',sans-serif;}</style></head><body>" + html + "</body></html>");
+        const link = document.createElement("a"); link.href=source; link.download=`KET測驗匯出報告_${Date.now()}.doc`; link.click();
       } else {
-        const w = window.open('', '_blank'); w.document.write(`<html><body>${html}</body></html>`); w.document.close(); setTimeout(()=>w.print(), 250);
+        const w = window.open('', '_blank'); w.document.write(`<html><head><title>KET 測驗報告</title><style>body{font-family:'Microsoft JhengHei',sans-serif;line-height:1.6;padding:20px;} @media print{body{-webkit-print-color-adjust:exact;}}</style></head><body>${html}</body></html>`); w.document.close(); setTimeout(()=>w.print(), 250);
       }
     }
 
+    window.showAttemptDetails = (id) => {
+      const a = gameState.rawAttemptHistory.find(x=>x.docId===id); if(!a) return;
+      document.getElementById('attempt-details-content').innerHTML=`<p>得分: ${a.score} | 準確率: ${a.accuracy}%</p><div class="mt-4"><p class="text-red-400">錯題 (${a.wrongWords?.length||0}):</p><div class="flex gap-2 flex-wrap">${(a.wrongWords||[]).map(w=>`<span class="bg-red-900 px-2 rounded">${w}</span>`).join('')}</div></div>`;
+      document.getElementById('attempt-details-modal').classList.remove('hidden','opacity-0');
+    };
+    
+    function renderWrongWordsSection(att) {
+      const el=document.getElementById('weak-words-list'); el.innerHTML=''; const m={};
+      att.forEach(a=> { if(a.wrongWords) a.wrongWords.forEach(w=> m[w]=(m[w]||0)+1); });
+      const top=Object.entries(m).sort((a,b)=>b[1]-a[1]).slice(0,5);
+      if(top.length===0) { el.innerHTML='<li class="text-gray-500 text-center py-10">無答錯記錄！</li>'; return; }
+      top.forEach(([w,c]) => { const v=vocabularyList.find(x=>x.word===w); el.innerHTML+=`<li class="bg-gray-950/40 border border-gray-800 p-4 rounded-2xl flex justify-between"><div class="space-y-1"><p class="text-red-400 font-bold uppercase">${w}</p><p class="text-xs text-gray-400">${getBaseTranslation(v?v.translation:'')}</p></div><span class="text-red-300 bg-red-900/50 px-2 py-1 rounded text-xs">錯 ${c} 次</span></li>`; });
+    }
+
+    let trendChartInstance=null;
+    function renderAdminTrendChart(att) {
+      const ctx=document.getElementById('score-trend-chart'); if(!ctx)return;
+      const sorted=[...att].sort((a,b)=>a.timestamp-b.timestamp);
+      if(trendChartInstance) trendChartInstance.destroy();
+      trendChartInstance = new Chart(ctx, { type:'line', data:{ labels:sorted.map(a=>{const d=new Date(a.timestamp); return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;}), datasets:[{label:'分數',data:sorted.map(a=>a.score),borderColor:'#8b5cf6',tension:0.3},{label:'答對率(%)',data:sorted.map(a=>a.accuracy),borderColor:'#10b981',tension:0.1}] }, options:{responsive:true,maintainAspectRatio:false} });
+    }
+
+    document.getElementById('close-details-btn').onclick=()=>document.getElementById('attempt-details-modal').classList.add('hidden');
     document.getElementById('admin-clear-records-btn').onclick=()=>document.getElementById('clear-confirm-modal').classList.remove('hidden','opacity-0');
     document.getElementById('cancel-clear-btn').onclick=()=>document.getElementById('clear-confirm-modal').classList.add('hidden');
-    document.getElementById('confirm-clear-btn').onclick=async()=>{ if(!isOfflineMode&&db){ const q=await getDocs(collection(db,'artifacts',appId,'public','data','scores')); await Promise.all(q.docs.map(d=>deleteDoc(d.ref))); } localStorage.removeItem('ket_scores'); loadAdminStatistics(); document.getElementById('clear-confirm-modal').classList.add('hidden'); };
+    document.getElementById('confirm-clear-btn').onclick=async()=>{ if(!isOfflineMode&&db){ const q=await getDocs(collection(db,'artifacts',appId,'public','data','scores')); await Promise.all(q.docs.map(d=>deleteDoc(d.ref))); } localStorage.removeItem('ket_scores'); document.getElementById('clear-confirm-modal').classList.add('hidden'); loadAdminStatistics(); };
+    document.getElementById('admin-switch-to-game-btn').onclick=()=>{resetGameState();navigateToView('gameplay');};
+    document.getElementById('retry-game-btn').onclick=()=>{resetGameState();navigateToView('gameplay');};
 
-    // --- Firebase Auth 登入防當機捕捉 ---
+    // --- Start up Process ---
     if(auth) onAuthStateChanged(auth, u => { isAuthResolved=true; gameState.user=u||null; resolveStartup(); });
     else { isAuthResolved=true; gameState.user=null; resolveStartup(); }
 
     document.getElementById('google-login-btn').onclick = async () => {
       if(isOfflineMode||!auth) { gameState.user={email:adminEmail, displayName:'管理員(離線)'}; resolveStartup(); return; }
-      try{ 
-        await signInWithPopup(auth, new GoogleAuthProvider()); 
-      } catch(e) { 
-        console.error("Login Error:", e);
-        if (e.code === 'auth/unauthorized-domain') {
-           const wantMock = confirm("【網域未授權】\n您似乎正在「AI 預覽視窗」中測試，此動態網址尚未加入 Firebase 白名單。\n\n強烈建議：請前往您的 GitHub Pages 網址進行真實測試。\n\n是否要在當前視窗「強制以模擬管理員」身分進入後台查看介面？");
-           if (wantMock) {
-               gameState.user = {email: adminEmail, displayName: '模擬管理員'};
-               resolveStartup();
-           }
-        } else {
-           alert("登入發生錯誤：" + e.message);
-        }
-      }
+      try{ await signInWithPopup(auth, new GoogleAuthProvider()); }catch(e){ alert("登入受阻，請確保白名單正確，或未在無痕模式。"); }
     };
     document.getElementById('logout-btn').onclick=()=>(auth?signOut(auth).then(()=>location.reload()):location.reload());
     
-    // 啟動點
-    loadAllSystemVocabularies();
+    // 初始化啟動點
+    loadExternalVocabulary();
   </script>
 </body>
 </html>
