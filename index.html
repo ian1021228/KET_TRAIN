@@ -7,6 +7,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <script>
     tailwind.config = {
       darkMode: 'class',
@@ -679,7 +680,7 @@
     window.exportSelected = (fmt) => executeExportProcessor(gameState.rawAttemptHistory.filter(a=>gameState.selectedIds.has(a.docId)), fmt);
     window.exportAllRecords = (fmt) => executeExportProcessor(gameState.rawAttemptHistory, fmt);
 
-    // 總錯題彙整匯出
+    // 總錯題彙整匯出 (升級為雙欄省紙版面)
     window.exportAggregatedWrongWords = (fmt) => {
       const att = gameState.rawAttemptHistory;
       if (!att || att.length === 0) return alert("無資料可匯出！");
@@ -692,20 +693,70 @@
       const sorted = Object.entries(m).sort((a, b) => b[1] - a[1]);
       if (sorted.length === 0) return alert("沒有任何錯題記錄！");
 
-      let html = `<div style="text-align:center; margin-bottom:30px;"><h2 style="color:#4b5563; font-size:24px;">KET 單字測驗 - 總錯題頻率彙整表</h2><p style="color:#6b7280; font-size:14px;">產出時間：${new Date().toLocaleString('zh-TW')} | 共計：${sorted.length} 詞</p></div>`;
-      html += `<table style="width:100%; border-collapse:collapse; font-size:14px;"><thead><tr style="background-color:#fee2e2; color:#991b1b; text-align:left;"><th style="padding:10px; border:1px solid #fca5a5;">錯誤次數</th><th style="padding:10px; border:1px solid #fca5a5;">英文單字</th><th style="padding:10px; border:1px solid #fca5a5;">中文翻譯</th></tr></thead><tbody>`;
+      let html = `<div style="text-align:center; margin-bottom:20px;"><h2 style="color:#4b5563; font-size:24px;">KET 單字測驗 - 總錯題頻率彙整表</h2><p style="color:#6b7280; font-size:14px;">產出時間：${new Date().toLocaleString('zh-TW')} | 共計：${sorted.length} 詞</p></div>`;
+      
+      // 使用 6 個 <th> 建立雙欄 (兩行) 並排效果，中間以加粗紅線分隔
+      html += `<table style="width:100%; border-collapse:collapse; font-size:13px; table-layout:fixed;">
+        <thead>
+          <tr style="background-color:#fee2e2; color:#991b1b; text-align:center;">
+            <th style="padding:8px; border:1px solid #fca5a5; width:8%;">錯誤</th>
+            <th style="padding:8px; border:1px solid #fca5a5; width:21%;">英文單字</th>
+            <th style="padding:8px; border:1px solid #fca5a5; width:21%; border-right:3px solid #ef4444;">中文翻譯</th>
+            <th style="padding:8px; border:1px solid #fca5a5; width:8%;">錯誤</th>
+            <th style="padding:8px; border:1px solid #fca5a5; width:21%;">英文單字</th>
+            <th style="padding:8px; border:1px solid #fca5a5; width:21%;">中文翻譯</th>
+          </tr>
+        </thead>
+        <tbody>`;
 
-      sorted.forEach(([w, c]) => {
-        const v = vocabularyList.find(x => x.word === w);
-        html += `<tr><td style="padding:10px; border:1px solid #fca5a5; text-align:center; font-weight:bold; color:#dc2626;">${c} 次</td><td style="padding:10px; border:1px solid #fca5a5; font-weight:bold;">${w}</td><td style="padding:10px; border:1px solid #fca5a5; color:#4b5563;">${getBaseTranslation(v ? v.translation : '無翻譯')}</td></tr>`;
-      });
+      // 每次迴圈抓取兩個單字 (item1 和 item2) 放進同一橫列
+      for (let i = 0; i < sorted.length; i += 2) {
+        const item1 = sorted[i];
+        const item2 = sorted[i + 1];
+
+        const w1 = item1[0], c1 = item1[1];
+        const v1 = vocabularyList.find(x => x.word === w1);
+        const trans1 = getBaseTranslation(v1 ? v1.translation : '無翻譯');
+
+        let tr = `<tr>
+          <td style="padding:8px; border:1px solid #fca5a5; text-align:center; font-weight:bold; color:#dc2626;">${c1} 次</td>
+          <td style="padding:8px; border:1px solid #fca5a5; font-weight:bold; padding-left:10px;">${w1}</td>
+          <td style="padding:8px; border:1px solid #fca5a5; border-right:3px solid #ef4444; color:#4b5563; padding-left:10px;">${trans1}</td>`;
+
+        if (item2) {
+          const w2 = item2[0], c2 = item2[1];
+          const v2 = vocabularyList.find(x => x.word === w2);
+          const trans2 = getBaseTranslation(v2 ? v2.translation : '無翻譯');
+          tr += `
+          <td style="padding:8px; border:1px solid #fca5a5; text-align:center; font-weight:bold; color:#dc2626;">${c2} 次</td>
+          <td style="padding:8px; border:1px solid #fca5a5; font-weight:bold; padding-left:10px;">${w2}</td>
+          <td style="padding:8px; border:1px solid #fca5a5; color:#4b5563; padding-left:10px;">${trans2}</td>`;
+        } else {
+          // 如果單字總數是奇數，最後一格補空白
+          tr += `
+          <td style="padding:8px; border:1px solid #fca5a5;"></td>
+          <td style="padding:8px; border:1px solid #fca5a5;"></td>
+          <td style="padding:8px; border:1px solid #fca5a5;"></td>`;
+        }
+        tr += `</tr>`;
+        html += tr;
+      }
       html += `</tbody></table>`;
 
       if (fmt === 'docx') {
         const source = 'data:application/vnd.ms-word;charset=utf-8,' + encodeURIComponent("<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>KET 總錯題表</title><style>body{font-family:'Microsoft JhengHei',sans-serif;}</style></head><body>" + html + "</body></html>");
         const link = document.createElement("a"); link.href = source; link.download = `KET總錯題表_${Date.now()}.doc`; link.click();
       } else {
-        const w = window.open('', '_blank'); w.document.write(`<html><head><title>KET 總錯題表</title><style>body{font-family:'Microsoft JhengHei',sans-serif;line-height:1.6;padding:20px;} @media print{body{-webkit-print-color-adjust:exact;}}</style></head><body>${html}</body></html>`); w.document.close(); setTimeout(() => w.print(), 250);
+        const opt = {
+          margin: 10,
+          filename: `KET總錯題表_${Date.now()}.pdf`,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2 },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+        const element = document.createElement('div');
+        element.innerHTML = `<div style="font-family:'Microsoft JhengHei',sans-serif; padding:10px;">${html}</div>`;
+        html2pdf().set(opt).from(element).save();
       }
     };
 
@@ -725,7 +776,16 @@
         const source = 'data:application/vnd.ms-word;charset=utf-8,' + encodeURIComponent("<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>KET 測驗報告</title><style>body{font-family:'Microsoft JhengHei',sans-serif;}</style></head><body>" + html + "</body></html>");
         const link = document.createElement("a"); link.href=source; link.download=`KET測驗匯出明細_${Date.now()}.doc`; link.click();
       } else {
-        const w = window.open('', '_blank'); w.document.write(`<html><head><title>KET 測驗報告</title><style>body{font-family:'Microsoft JhengHei',sans-serif;line-height:1.6;padding:20px;} @media print{body{-webkit-print-color-adjust:exact;}}</style></head><body>${html}</body></html>`); w.document.close(); setTimeout(()=>w.print(), 250);
+        const opt = {
+          margin: 10,
+          filename: `KET測驗匯出明細_${Date.now()}.pdf`,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2 },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+        const element = document.createElement('div');
+        element.innerHTML = `<div style="font-family:'Microsoft JhengHei',sans-serif; padding:10px;">${html}</div>`;
+        html2pdf().set(opt).from(element).save();
       }
     }
 
