@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="zh-Hant" class="dark">
 <head>
@@ -238,7 +237,18 @@
           <div class="relative w-full h-64 bg-gray-950/40 rounded-2xl border border-gray-800/60 p-4"><canvas id="score-trend-chart"></canvas></div>
         </div>
         <div class="bg-gray-900/40 border border-gray-800 rounded-3xl p-6">
-          <h3 class="font-bold text-gray-200 mb-4">🚨 最常答錯單字</h3>
+          <!-- 錯題按鈕與標題區塊調整 -->
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="font-bold text-gray-200">🚨 最常答錯單字</h3>
+            <div class="flex space-x-2">
+              <button onclick="window.exportAggregatedWrongWords('pdf')" class="bg-red-500/10 hover:bg-red-500/30 text-red-400 border border-red-500/20 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center shadow-lg" title="匯出成 PDF">
+                <i class="fa-solid fa-download mr-1"></i>PDF
+              </button>
+              <button onclick="window.exportAggregatedWrongWords('docx')" class="bg-blue-500/10 hover:bg-blue-500/30 text-blue-400 border border-blue-500/20 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center shadow-lg" title="匯出成 DOCX">
+                <i class="fa-solid fa-file-word mr-1"></i>DOCX
+              </button>
+            </div>
+          </div>
           <ul id="weak-words-list" class="space-y-3 max-h-[260px] overflow-y-auto"></ul>
         </div>
       </div>
@@ -248,7 +258,7 @@
           <h3 class="font-bold text-gray-200">實時答題歷史明細</h3>
           <div class="flex items-center space-x-2">
             <input type="text" id="admin-search-field" placeholder="搜尋姓名或信箱..." class="bg-gray-950 border border-gray-800 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-purple-500">
-            <button onclick="window.exportAllRecords('pdf')" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl text-sm font-bold"><i class="fa-solid fa-file-export mr-1"></i>匯出全部</button>
+            <button onclick="window.exportAllRecords('pdf')" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl text-sm font-bold"><i class="fa-solid fa-file-export mr-1"></i>匯出全部明細</button>
           </div>
         </div>
 
@@ -266,7 +276,7 @@
             <thead class="bg-gray-900/60 text-xs text-gray-400">
               <tr>
                 <th class="p-4"><input type="checkbox" id="chk-all" onclick="window.toggleSelectAll()" class="custom-checkbox"></th>
-                <th class="p-4">姓名</th><th class="p-4">得分</th><th class="p-4">準確度</th><th class="p-4">日期</th><th class="p-4 text-center">詳情</th>
+                <th class="p-4">姓名</th><th class="p-4">得分</th><th class="p-4">準確度</th><th class="p-4">測驗時長</th><th class="p-4">日期</th><th class="p-4 text-center">詳情</th>
               </tr>
             </thead>
             <tbody id="attempts-table-body"></tbody>
@@ -315,8 +325,16 @@
       user: null, currentView: 'signin', score: 0, combo: 0, energy: 0, lives: 5, isSupercharged: false,
       currentQuestionIndex: 0, totalRoundQuestions: 15, correctCount: 0, maxCombo: 0, currentQuestion: null, currentMode: 'choice',
       wrongWordsRecord: [], rawAttemptHistory: [], unansweredWords: [], wrongWordsPool: [],
-      isTransitioning: false, isGameOver: false, selectedIds: new Set(), visibleIds: []
+      isTransitioning: false, isGameOver: false, selectedIds: new Set(), visibleIds: [],
+      startTime: 0, timeTaken: 0 // 新增時間追蹤
     };
+
+    function formatDuration(seconds) {
+      if (!seconds && seconds !== 0) return '未知';
+      const m = Math.floor(seconds / 60);
+      const s = seconds % 60;
+      return m > 0 ? `${m}分${s}秒` : `${s}秒`;
+    }
 
     // 核心濾除器：去除所有括號內容（包含全形與半形），確保只留下純粹的「中文單字」
     function getBaseTranslation(text) { 
@@ -369,7 +387,7 @@
       return ret;
     }
 
-    // AI 智慧掃描器：從 CSV 找出單字、純中文、句子的欄位
+    // AI 智慧掃描器
     async function loadExternalVocabulary() {
       try {
         const res = await fetch(SHEET_CSV_URL);
@@ -391,15 +409,12 @@
               const charCount = txt.length;
 
               if (isChinese) {
-                 // 找到純中文單字：短、不含句號 -> 加大分！
                  if (charCount <= 12 && !/[。！？]/.test(txt)) scores[c].t += 3;
                  else if (txt.includes('(') || txt.includes('（')) scores[c].t += 1;
-                 else if (charCount > 15 || /[。！？]/.test(txt)) scores[c].t -= 2; // 懲罰長句子
+                 else if (charCount > 15 || /[。！？]/.test(txt)) scores[c].t -= 2; 
               } else {
-                 // 找句子：含有底線或長度長 -> 加分！
                  if (txt.includes('_')) scores[c].c += 5;
                  else if (wordCount >= 4 || charCount > 25) scores[c].c += 2;
-                 // 找單字：純英文短字 -> 加分！
                  else if (wordCount <= 3 && charCount > 0 && charCount <= 20) scores[c].w += 2;
               }
            }
@@ -413,7 +428,6 @@
            if (scores[i].c > maxC) { maxC=scores[i].c; cCol=i; }
         }
 
-        // 防碰撞處理
         if (wCol === cCol) cCol = (wCol + 1) % maxCols;
         if (tCol === wCol) tCol = (wCol + 2) % maxCols;
 
@@ -422,7 +436,6 @@
           if (row.length > wCol) {
              let rawWord = (row[wCol]||'').trim();
              if (!rawWord || rawWord.toLowerCase().includes('word') || rawWord.includes('單字')) continue;
-             // 清理所有的括號詞性，如: baby (n)
              let cleanWord = rawWord.replace(/[\(\[（].*?[\)\]）]/g, '').trim();
              vocabularyList.push({ word: cleanWord, clue: (row[cCol]||'').trim(), translation: (row[tCol]||'').trim() });
           }
@@ -477,6 +490,7 @@
       gameState.score=0; gameState.combo=0; gameState.energy=0; gameState.lives=5; gameState.isSupercharged=false;
       gameState.currentQuestionIndex=0; gameState.correctCount=0; gameState.maxCombo=0; gameState.wrongWordsRecord=[];
       gameState.unansweredWords=[...vocabularyList]; gameState.wrongWordsPool=[]; gameState.isTransitioning=false; gameState.isGameOver=false;
+      gameState.startTime=Date.now(); gameState.timeTaken=0;
       updateHeaderProgressUI();
     }
 
@@ -497,7 +511,6 @@
     }
     document.getElementById('return-admin-btn').onclick = () => navigateToView('admin');
 
-    // 自動幫句子挖空 (如果試算表忘記加底線)
     function getDisplayClue(word, clue) {
       if (!clue || typeof clue !== 'string' || clue.trim() === '') return `(請拼出單字: ${word.replace(/[a-zA-Z]/g, '_')})`;
       if (clue.includes('_')) return clue;
@@ -521,31 +534,27 @@
       document.getElementById('trivia-card').classList.remove('animate-shake','border-red-500/40','border-green-500/40');
       document.getElementById('spelling-field').value='';
       
-      // ===== 核心體驗變更區塊 =====
       if(gameState.currentMode==='choice'){
-        // 模式 1：句子填空 (只顯示英文句子，完全隱藏中文)
         document.getElementById('question-type-badge').innerText = '句子填空克漏字';
         document.getElementById('question-type-badge').className = 'text-xs bg-purple-500/20 text-purple-300 font-bold px-3 py-1 rounded-full border border-purple-500/30 uppercase tracking-widest font-mono';
         qPrompt.innerText = getDisplayClue(gameState.currentQuestion.word, gameState.currentQuestion.clue); 
-        qClue.classList.add('hidden'); // 隱藏所有提示
+        qClue.classList.add('hidden'); 
         inZone.classList.add('hidden'); chZone.classList.remove('hidden');
         generateChoiceButtons(gameState.currentQuestion, 'word');
         
       } else if(gameState.currentMode==='spelling'){
-        // 模式 2：中翻英手動拼寫 (顯示「中文單字」，要求拼寫)
         document.getElementById('question-type-badge').innerText = '中翻英手動挑戰';
         document.getElementById('question-type-badge').className = 'text-xs bg-pink-500/20 text-pink-300 font-bold px-3 py-1 rounded-full border border-pink-500/30 uppercase tracking-widest font-mono';
-        qPrompt.innerText = getBaseTranslation(gameState.currentQuestion.translation); // 只拿純中文！
-        qClue.innerText = "請根據上方中文，拼出對應的英文單字"; // 無任何首字母或句子提示
+        qPrompt.innerText = getBaseTranslation(gameState.currentQuestion.translation); 
+        qClue.innerText = "請根據上方中文，拼出對應的英文單字"; 
         qClue.classList.remove('hidden'); chZone.classList.add('hidden'); inZone.classList.remove('hidden');
         setTimeout(()=>document.getElementById('spelling-field').focus(), 150);
         
       } else {
-        // 模式 3：英翻中語意匹配 (顯示英文單字，選出對應的純中文單字)
         document.getElementById('question-type-badge').innerText = '英翻中語意匹配';
         document.getElementById('question-type-badge').className = 'text-xs bg-indigo-500/20 text-indigo-300 font-bold px-3 py-1 rounded-full border border-indigo-500/30 uppercase tracking-widest font-mono';
         qPrompt.innerHTML = `請選出單字的意思：<br><span class="text-yellow-400 text-4xl underline select-all mt-3 inline-block">${gameState.currentQuestion.word}</span>`;
-        qClue.classList.add('hidden'); // 嚴格隱藏英文例句
+        qClue.classList.add('hidden'); 
         inZone.classList.add('hidden'); chZone.classList.remove('hidden');
         generateChoiceButtons(gameState.currentQuestion, 'translation');
       }
@@ -565,12 +574,9 @@
       for(let w of arr){ if(w.word!==correct.word && dist.length<3) dist.push(w); }
       [correct, ...dist].sort(()=>0.5-Math.random()).forEach(opt => {
         const b = document.createElement('button'); b.className="w-full text-left bg-gray-950 hover:bg-gray-800 border-2 border-gray-800 p-4 rounded-2xl text-sm font-semibold transition-all flex items-center justify-between group active:scale-[0.98]";
-        
         const label = document.createElement('span');
-        // 選項也只會拿到「純淨中文」
         label.innerText = type==='word' ? opt.word : getBaseTranslation(opt.translation);
         b.appendChild(label);
-        
         b.innerHTML += '<i class="fa-solid fa-chevron-right text-gray-700 group-hover:text-purple-400 group-hover:translate-x-1 transition-all text-xs"></i>';
         b.onclick=()=>{ b.blur(); evaluateAnswer(opt.word===correct.word); }; grid.appendChild(b);
       });
@@ -596,7 +602,6 @@
         audio.playWrong(); fxEngine.addBurst(cx,cy,'#ef4444',true); gameState.lives--; gameState.combo=0; gameState.energy=0; gameState.isSupercharged=false;
         card.classList.add('animate-shake','border-red-500/40');
         
-        // 答錯顯示完整解析 (這裡會顯示你表格中原始那行帶有完整例句的翻譯)
         const modal = document.createElement('div'); modal.className="bg-red-950 border-2 border-red-500 p-5 rounded-2xl absolute inset-4 z-50 text-center flex flex-col justify-center animate-bounce-in";
         modal.innerHTML=`<p class="text-red-400 font-bold mb-2">正確答案：</p><p class="text-3xl text-white font-bold mb-2 uppercase">${gameState.currentQuestion.word}</p><p class="text-sm text-gray-300">${gameState.currentQuestion.translation}</p>`;
         card.appendChild(modal); setTimeout(()=>{modal.remove(); loadNextQuestion();}, 2200);
@@ -606,10 +611,11 @@
 
     async function endTheGame() {
       if(gameState.isGameOver) return; gameState.isGameOver=true; audio.playFanfare();
+      gameState.timeTaken = Math.round((Date.now() - gameState.startTime) / 1000);
       const acc = Math.round((gameState.correctCount/gameState.totalRoundQuestions)*100);
       document.getElementById('final-score').innerText=gameState.score; document.getElementById('accuracy-rate').innerText=acc+'%';
       navigateToView('gameover');
-      const payload={uid:gameState.user?.uid||'guest', displayName:gameState.user?.displayName||'訪客', email:gameState.user?.email||'guest', score:gameState.score, totalQuestions:gameState.totalRoundQuestions, correctCount:gameState.correctCount, accuracy:acc, maxCombo:gameState.maxCombo, wrongWords:gameState.wrongWordsRecord, timestamp:Date.now()};
+      const payload={uid:gameState.user?.uid||'guest', displayName:gameState.user?.displayName||'訪客', email:gameState.user?.email||'guest', score:gameState.score, totalQuestions:gameState.totalRoundQuestions, correctCount:gameState.correctCount, accuracy:acc, maxCombo:gameState.maxCombo, wrongWords:gameState.wrongWordsRecord, timeTaken:gameState.timeTaken, timestamp:Date.now()};
       if(!isOfflineMode&&db&&gameState.user) try{ await addDoc(collection(db,'artifacts',appId,'public','data','scores'), payload); }catch(e){}
       else { const c=JSON.parse(localStorage.getItem('ket_scores')||'[]'); payload.docId='loc_'+Date.now(); c.push(payload); localStorage.setItem('ket_scores',JSON.stringify(c)); }
     }
@@ -644,7 +650,7 @@
       const sorted=[...data].sort((a,b)=>b.timestamp-a.timestamp); gameState.visibleIds=sorted.map(a=>a.docId);
       sorted.forEach(a => {
         const ds=new Date(a.timestamp).toLocaleDateString('zh-TW',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
-        tb.innerHTML+=`<tr id="row-${a.docId}" class="border-b border-gray-800"><td class="p-4"><input type="checkbox" id="chk-${a.docId}" onclick="window.toggleSelect('${a.docId}')" class="custom-checkbox" ${gameState.selectedIds.has(a.docId)?'checked':''}></td><td class="p-4">${a.displayName}</td><td class="p-4 text-yellow-400">${a.score}</td><td class="p-4">${a.accuracy}%</td><td class="p-4">${ds}</td><td class="p-4 text-center"><button onclick="window.showAttemptDetails('${a.docId}')" class="text-purple-400"><i class="fa-solid fa-magnifying-glass"></i></button></td></tr>`;
+        tb.innerHTML+=`<tr id="row-${a.docId}" class="border-b border-gray-800"><td class="p-4"><input type="checkbox" id="chk-${a.docId}" onclick="window.toggleSelect('${a.docId}')" class="custom-checkbox" ${gameState.selectedIds.has(a.docId)?'checked':''}></td><td class="p-4">${a.displayName}</td><td class="p-4 text-yellow-400">${a.score}</td><td class="p-4">${a.accuracy}%</td><td class="p-4">${formatDuration(a.timeTaken)}</td><td class="p-4">${ds}</td><td class="p-4 text-center"><button onclick="window.showAttemptDetails('${a.docId}')" class="text-purple-400 hover:text-purple-300"><i class="fa-solid fa-magnifying-glass"></i></button></td></tr>`;
       });
       const chkAll = document.getElementById('chk-all');
       if (chkAll) chkAll.checked = gameState.visibleIds.length>0 && gameState.visibleIds.every(id=>gameState.selectedIds.has(id));
@@ -672,11 +678,41 @@
     window.exportSelected = (fmt) => executeExportProcessor(gameState.rawAttemptHistory.filter(a=>gameState.selectedIds.has(a.docId)), fmt);
     window.exportAllRecords = (fmt) => executeExportProcessor(gameState.rawAttemptHistory, fmt);
 
+    // 總錯題彙整匯出
+    window.exportAggregatedWrongWords = (fmt) => {
+      const att = gameState.rawAttemptHistory;
+      if (!att || att.length === 0) return alert("無資料可匯出！");
+
+      const m = {};
+      att.forEach(a => {
+        if (a.wrongWords) a.wrongWords.forEach(w => m[w] = (m[w] || 0) + 1);
+      });
+
+      const sorted = Object.entries(m).sort((a, b) => b[1] - a[1]);
+      if (sorted.length === 0) return alert("沒有任何錯題記錄！");
+
+      let html = `<div style="text-align:center; margin-bottom:30px;"><h2 style="color:#4b5563; font-size:24px;">KET 單字測驗 - 總錯題頻率彙整表</h2><p style="color:#6b7280; font-size:14px;">產出時間：${new Date().toLocaleString('zh-TW')} | 共計：${sorted.length} 詞</p></div>`;
+      html += `<table style="width:100%; border-collapse:collapse; font-size:14px;"><thead><tr style="background-color:#fee2e2; color:#991b1b; text-align:left;"><th style="padding:10px; border:1px solid #fca5a5;">錯誤次數</th><th style="padding:10px; border:1px solid #fca5a5;">英文單字</th><th style="padding:10px; border:1px solid #fca5a5;">中文翻譯</th></tr></thead><tbody>`;
+
+      sorted.forEach(([w, c]) => {
+        const v = vocabularyList.find(x => x.word === w);
+        html += `<tr><td style="padding:10px; border:1px solid #fca5a5; text-align:center; font-weight:bold; color:#dc2626;">${c} 次</td><td style="padding:10px; border:1px solid #fca5a5; font-weight:bold;">${w}</td><td style="padding:10px; border:1px solid #fca5a5; color:#4b5563;">${getBaseTranslation(v ? v.translation : '無翻譯')}</td></tr>`;
+      });
+      html += `</tbody></table>`;
+
+      if (fmt === 'docx') {
+        const source = 'data:application/vnd.ms-word;charset=utf-8,' + encodeURIComponent("<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>KET 總錯題表</title><style>body{font-family:'Microsoft JhengHei',sans-serif;}</style></head><body>" + html + "</body></html>");
+        const link = document.createElement("a"); link.href = source; link.download = `KET總錯題表_${Date.now()}.doc`; link.click();
+      } else {
+        const w = window.open('', '_blank'); w.document.write(`<html><head><title>KET 總錯題表</title><style>body{font-family:'Microsoft JhengHei',sans-serif;line-height:1.6;padding:20px;} @media print{body{-webkit-print-color-adjust:exact;}}</style></head><body>${html}</body></html>`); w.document.close(); setTimeout(() => w.print(), 250);
+      }
+    };
+
     function executeExportProcessor(records, format) {
       if (!records||records.length===0) return alert("找不到可匯出的資料！");
       let html = `<div style="text-align:center; margin-bottom:30px;"><h2 style="color:#4b5563; font-size:24px;">KET 單字測驗 錯題與成績分析報告</h2><p style="color:#6b7280; font-size:14px;">產出時間：${new Date().toLocaleString('zh-TW')}</p></div>`;
       records.sort((a,b)=>b.timestamp-a.timestamp).forEach(r => {
-        html += `<div style="border:1px solid #e5e7eb; border-radius:8px; padding:15px; margin-bottom:20px; background-color:#f9fafb;"><h3 style="color:#111827; margin-top:0;">${r.displayName}</h3><ul style="color:#374151; margin-bottom:15px;"><li>測驗時間：${new Date(r.timestamp).toLocaleString('zh-TW')}</li><li>最終得分：<b>${r.score}</b> 分</li><li>答題準確度：<b>${r.accuracy}%</b></li></ul>`;
+        html += `<div style="border:1px solid #e5e7eb; border-radius:8px; padding:15px; margin-bottom:20px; background-color:#f9fafb;"><h3 style="color:#111827; margin-top:0;">${r.displayName}</h3><ul style="color:#374151; margin-bottom:15px;"><li>測驗時間：${new Date(r.timestamp).toLocaleString('zh-TW')}</li><li>測驗時長：${formatDuration(r.timeTaken)}</li><li>最終得分：<b>${r.score}</b> 分</li><li>答題準確度：<b>${r.accuracy}%</b></li></ul>`;
         if (r.wrongWords&&r.wrongWords.length>0) {
           html += `<h4 style="color:#dc2626; margin-bottom:10px;">需加強單字清單 (${r.wrongWords.length} 題)：</h4><table style="width:100%; border-collapse:collapse; margin-bottom:10px; font-size:14px;"><thead><tr style="background-color:#fee2e2; color:#991b1b; text-align:left;"><th style="padding:8px; border:1px solid #fca5a5; width:30%;">英文單字</th><th style="padding:8px; border:1px solid #fca5a5;">中文翻譯</th></tr></thead><tbody>`;
           r.wrongWords.forEach(w => { const v=vocabularyList.find(x=>x.word===w); html+=`<tr><td style="padding:8px; border:1px solid #fca5a5; font-weight:bold;">${w}</td><td style="padding:8px; border:1px solid #fca5a5; color:#4b5563;">${getBaseTranslation(v?v.translation:'無翻譯')}</td></tr>`; });
@@ -686,7 +722,7 @@
       });
       if (format === 'docx') {
         const source = 'data:application/vnd.ms-word;charset=utf-8,' + encodeURIComponent("<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>KET 測驗報告</title><style>body{font-family:'Microsoft JhengHei',sans-serif;}</style></head><body>" + html + "</body></html>");
-        const link = document.createElement("a"); link.href=source; link.download=`KET測驗匯出報告_${Date.now()}.doc`; link.click();
+        const link = document.createElement("a"); link.href=source; link.download=`KET測驗匯出明細_${Date.now()}.doc`; link.click();
       } else {
         const w = window.open('', '_blank'); w.document.write(`<html><head><title>KET 測驗報告</title><style>body{font-family:'Microsoft JhengHei',sans-serif;line-height:1.6;padding:20px;} @media print{body{-webkit-print-color-adjust:exact;}}</style></head><body>${html}</body></html>`); w.document.close(); setTimeout(()=>w.print(), 250);
       }
@@ -694,7 +730,7 @@
 
     window.showAttemptDetails = (id) => {
       const a = gameState.rawAttemptHistory.find(x=>x.docId===id); if(!a) return;
-      document.getElementById('attempt-details-content').innerHTML=`<p>得分: ${a.score} | 準確率: ${a.accuracy}%</p><div class="mt-4"><p class="text-red-400">錯題 (${a.wrongWords?.length||0}):</p><div class="flex gap-2 flex-wrap">${(a.wrongWords||[]).map(w=>`<span class="bg-red-900 px-2 rounded">${w}</span>`).join('')}</div></div>`;
+      document.getElementById('attempt-details-content').innerHTML=`<p>得分: ${a.score} | 準確率: ${a.accuracy}% | 時長: ${formatDuration(a.timeTaken)}</p><div class="mt-4"><p class="text-red-400">錯題 (${a.wrongWords?.length||0}):</p><div class="flex gap-2 flex-wrap">${(a.wrongWords||[]).map(w=>`<span class="bg-red-900 px-2 rounded">${w}</span>`).join('')}</div></div>`;
       document.getElementById('attempt-details-modal').classList.remove('hidden','opacity-0');
     };
     
@@ -711,7 +747,37 @@
       const ctx=document.getElementById('score-trend-chart'); if(!ctx)return;
       const sorted=[...att].sort((a,b)=>a.timestamp-b.timestamp);
       if(trendChartInstance) trendChartInstance.destroy();
-      trendChartInstance = new Chart(ctx, { type:'line', data:{ labels:sorted.map(a=>{const d=new Date(a.timestamp); return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;}), datasets:[{label:'分數',data:sorted.map(a=>a.score),borderColor:'#8b5cf6',tension:0.3},{label:'答對率(%)',data:sorted.map(a=>a.accuracy),borderColor:'#10b981',tension:0.1}] }, options:{responsive:true,maintainAspectRatio:false} });
+      trendChartInstance = new Chart(ctx, { 
+        type:'line', 
+        data:{ 
+          labels:sorted.map(a=>{const d=new Date(a.timestamp); return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;}), 
+          datasets:[
+            {label:'分數',data:sorted.map(a=>a.score),borderColor:'#8b5cf6',tension:0.3, yAxisID: 'y'},
+            {label:'答對率(%)',data:sorted.map(a=>a.accuracy),borderColor:'#10b981',tension:0.1, yAxisID: 'y1'}
+          ] 
+        }, 
+        options:{
+          responsive:true,
+          maintainAspectRatio:false,
+          scales: {
+            y: {
+              type: 'linear',
+              display: true,
+              position: 'left',
+              title: { display: true, text: '分數', color: '#8b5cf6' }
+            },
+            y1: {
+              type: 'linear',
+              display: true,
+              position: 'right',
+              min: 0,
+              max: 100,
+              title: { display: true, text: '答對率 (%)', color: '#10b981' },
+              grid: { drawOnChartArea: false } // 不重複繪製水平網格線
+            }
+          }
+        } 
+      });
     }
 
     document.getElementById('close-details-btn').onclick=()=>document.getElementById('attempt-details-modal').classList.add('hidden');
