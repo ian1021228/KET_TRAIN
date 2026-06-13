@@ -1,2 +1,2 @@
-# KET_TRAIN
-由 EZPage 建立的網站 - Deployed by EZPage
+＃單字練習系統
+由王禹硯建立的網站
