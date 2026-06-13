@@ -236,10 +236,10 @@
           <h3 class="font-bold text-gray-200 mb-4">測驗成績變化趨勢圖</h3>
           <div class="relative w-full h-64 bg-gray-950/40 rounded-2xl border border-gray-800/60 p-4"><canvas id="score-trend-chart"></canvas></div>
         </div>
-        <div class="bg-gray-900/40 border border-gray-800 rounded-3xl p-6">
+        <div class="bg-gray-900/40 border border-gray-800 rounded-3xl p-6 flex flex-col">
           <!-- 錯題按鈕與標題區塊調整 -->
           <div class="flex items-center justify-between mb-4">
-            <h3 class="font-bold text-gray-200">🚨 最常答錯單字</h3>
+            <h3 class="font-bold text-gray-200">🚨 答錯單字總排行</h3>
             <div class="flex space-x-2">
               <button onclick="window.exportAggregatedWrongWords('pdf')" class="bg-red-500/10 hover:bg-red-500/30 text-red-400 border border-red-500/20 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center shadow-lg" title="匯出成 PDF">
                 <i class="fa-solid fa-download mr-1"></i>PDF
@@ -249,7 +249,8 @@
               </button>
             </div>
           </div>
-          <ul id="weak-words-list" class="space-y-3 max-h-[260px] overflow-y-auto"></ul>
+          <!-- 移除 slice() 限制並拉高 max-h，讓所有錯題都能往下滑動顯示 -->
+          <ul id="weak-words-list" class="space-y-3 max-h-[350px] overflow-y-auto pr-2 flex-grow"></ul>
         </div>
       </div>
 
@@ -737,9 +738,10 @@
     function renderWrongWordsSection(att) {
       const el=document.getElementById('weak-words-list'); el.innerHTML=''; const m={};
       att.forEach(a=> { if(a.wrongWords) a.wrongWords.forEach(w=> m[w]=(m[w]||0)+1); });
-      const top=Object.entries(m).sort((a,b)=>b[1]-a[1]).slice(0,5);
-      if(top.length===0) { el.innerHTML='<li class="text-gray-500 text-center py-10">無答錯記錄！</li>'; return; }
-      top.forEach(([w,c]) => { const v=vocabularyList.find(x=>x.word===w); el.innerHTML+=`<li class="bg-gray-950/40 border border-gray-800 p-4 rounded-2xl flex justify-between"><div class="space-y-1"><p class="text-red-400 font-bold uppercase">${w}</p><p class="text-xs text-gray-400">${getBaseTranslation(v?v.translation:'')}</p></div><span class="text-red-300 bg-red-900/50 px-2 py-1 rounded text-xs">錯 ${c} 次</span></li>`; });
+      // 這裡移除了原本的 .slice(0, 5)，讓陣列包含所有答錯的單字
+      const allSorted=Object.entries(m).sort((a,b)=>b[1]-a[1]);
+      if(allSorted.length===0) { el.innerHTML='<li class="text-gray-500 text-center py-10">無答錯記錄！</li>'; return; }
+      allSorted.forEach(([w,c]) => { const v=vocabularyList.find(x=>x.word===w); el.innerHTML+=`<li class="bg-gray-950/40 border border-gray-800 p-4 rounded-2xl flex justify-between"><div class="space-y-1"><p class="text-red-400 font-bold uppercase">${w}</p><p class="text-xs text-gray-400">${getBaseTranslation(v?v.translation:'')}</p></div><span class="text-red-300 bg-red-900/50 px-2 py-1 rounded text-xs">錯 ${c} 次</span></li>`; });
     }
 
     let trendChartInstance=null;
