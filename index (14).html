@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KET Vocab Quest & Analytics</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          animation: {
+            'shake': 'shake 0.3s cubic-bezier(.36,.07,.19,.97) both',
+            'bounce-in': 'bounce-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) both',
+          },
+          keyframes: {
+            shake: {
+              '10%, 90%': { transform: 'translate3d(-2px, 0, 0)' },
+              '20%, 80%': { transform: 'translate3d(3px, 0, 0)' },
+              '30%, 50%, 70%': { transform: 'translate3d(-5px, 0, 0)' },
+              '40%, 60%': { transform: 'translate3d(5px, 0, 0)' }
+            },
+            'bounce-in': {
+              '0%': { transform: 'scale(0.8)', opacity: '0' },
+              '100%': { transform: 'scale(1)', opacity: '1' }
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #1f2937; }
+    ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #3b82f6; }
+    .neon-border { box-shadow: 0 0 15px rgba(168, 85, 247, 0.2), inset 0 0 15px rgba(168, 85, 247, 0.1); }
+    .neon-border-green { box-shadow: 0 0 15px rgba(34, 197, 94, 0.2), inset 0 0 15px rgba(34, 197, 94, 0.1); }
+    .neon-border-blue { box-shadow: 0 0 15px rgba(59, 130, 246, 0.3), inset 0 0 15px rgba(59, 130, 246, 0.15); }
+    .custom-checkbox { accent-color: #8b5cf6; width: 18px; height: 18px; cursor: pointer; border-radius: 4px; }
+    .row-deleting { transform: scale(0.95); opacity: 0; pointer-events: none; transition: all 0.3s ease; }
+  </style>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen font-sans flex flex-col overflow-x-hidden relative selection:bg-purple-500 selection:text-white">
+
+  <!-- Particle Background Layer -->
+  <div class="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+    <canvas id="bg-canvas" class="w-full h-full opacity-60"></canvas>
+  </div>
+
+  <!-- Loading Screen overlay -->
+  <div id="loading-overlay" class="fixed inset-0 bg-gray-950 z-50 flex flex-col items-center justify-center transition-opacity duration-500">
+    <div class="relative w-24 h-24 flex items-center justify-center">
+      <div class="absolute w-full h-full border-4 border-purple-500/20 border-t-purple-500 rounded-full animate-spin"></div>
+      <i class="fa-solid fa-graduation-cap text-3xl text-purple-400 animate-pulse"></i>
+    </div>
+    <h2 class="text-xl font-bold mt-6 tracking-widest text-purple-300">KET VOCAB QUEST</h2>
+    <p id="loading-text" class="text-sm text-gray-400 mt-2">載入系統與安全驗證中...</p>
+  </div>
+
+  <!-- Main Navigation Header -->
+  <header class="border-b border-gray-800/80 bg-gray-900/40 backdrop-blur-md sticky top-0 z-40 px-4 py-3">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="bg-gradient-to-tr from-purple-600 to-indigo-600 p-2 rounded-xl text-white shadow-lg">
+          <i class="fa-solid fa-gamepad text-lg"></i>
+        </div>
+        <div>
+          <h1 class="font-black text-lg tracking-wider bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent">KET 單字星際航行</h1>
+          <p id="vocab-status-text" class="text-xs text-gray-400">連線中...</p>
+        </div>
+      </div>
+      <div id="user-profile" class="flex items-center space-x-3 hidden">
+        <button id="return-admin-btn" class="hidden bg-purple-600/20 hover:bg-purple-600/40 border border-purple-500/50 text-purple-300 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors mr-2">
+          <i class="fa-solid fa-gauge mr-1"></i>返回控制台
+        </button>
+        <div class="text-right hidden sm:block">
+          <p id="user-name" class="text-sm font-semibold text-gray-200">未登入</p>
+          <p id="user-role-badge" class="text-xs text-purple-400 font-mono">ROLE: PLAYER</p>
+        </div>
+        <img id="user-avatar" src="" alt="Avatar" class="w-9 h-9 rounded-full border-2 border-purple-500 bg-gray-800 object-cover" referrerpolicy="no-referrer">
+        <button id="logout-btn" class="text-gray-400 hover:text-red-400 text-sm p-2 transition-colors" title="登出">
+          <i class="fa-solid fa-right-from-bracket"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-grow flex flex-col px-4 py-6 z-10 max-w-7xl w-full mx-auto justify-center">
+
+    <!-- VIEW 1: SIGN IN PAGE -->
+    <section id="view-signin" class="max-w-md w-full mx-auto text-center py-10 hidden">
+      <div class="bg-gray-900/60 backdrop-blur-xl border border-gray-800 rounded-3xl p-8 shadow-2xl relative overflow-hidden neon-border">
+        <div class="absolute -top-10 -right-10 w-40 h-40 bg-purple-600/10 rounded-full blur-3xl"></div>
+        <div class="absolute -bottom-10 -left-10 w-40 h-40 bg-indigo-600/10 rounded-full blur-3xl"></div>
+        <div class="w-20 h-20 bg-gradient-to-tr from-purple-500 to-indigo-500 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-purple-500/20 transform hover:scale-105 transition-transform duration-300">
+          <i class="fa-solid fa-meteor text-4xl text-white"></i>
+        </div>
+        <h2 class="text-2xl font-black tracking-wide text-white">開啟 KET 單字冒險</h2>
+        <p class="text-sm text-gray-400 mt-2 mb-8">為弟弟衝刺 KET 英文檢定！登入後系統將根據身分自動分流至遊戲區或考情管理後台。</p>
+        <button id="google-login-btn" class="w-full flex items-center justify-center space-x-3 bg-white hover:bg-gray-100 text-gray-900 font-bold py-3.5 px-6 rounded-2xl shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98]">
+          <i class="fa-brands fa-google text-red-500 text-lg"></i>
+          <span>Google 帳號快速登入</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- VIEW 2: GAMEPLAY ZONE -->
+    <section id="view-gameplay" class="max-w-xl w-full mx-auto hidden flex flex-col space-y-6">
+      <div class="bg-gray-900/60 backdrop-blur-md border border-gray-800/80 rounded-2xl p-4 flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+          <div class="text-xs text-gray-400 font-mono tracking-wider mr-1">LIVES:</div>
+          <div id="heart-container" class="flex space-x-1.5"></div>
+        </div>
+        <div class="text-right">
+          <p class="text-xs text-gray-400 font-mono tracking-wider uppercase">Current Score</p>
+          <p id="game-score" class="text-2xl font-black text-yellow-400 font-mono">00000</p>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-4">
+        <div class="bg-gradient-to-r from-pink-500/10 to-purple-500/10 border border-purple-500/20 rounded-2xl px-4 py-3 flex items-center space-x-2 relative overflow-hidden flex-1 select-none">
+          <span class="text-2xl">🔥</span>
+          <div>
+            <p id="combo-display" class="text-xl font-black tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-purple-400 font-mono">COMBO X0</p>
+            <p class="text-[10px] text-purple-300 uppercase tracking-widest font-mono">Combo Power-up</p>
+          </div>
+        </div>
+        <div id="multiplier-badge" class="bg-gray-900/60 border border-gray-800 rounded-2xl px-5 py-3 text-center min-w-[80px] transition-all">
+          <p class="text-[10px] text-gray-400 uppercase tracking-widest font-mono">Multiplier</p>
+          <p id="multiplier-text" class="text-xl font-black text-purple-400 font-mono">1.0X</p>
+        </div>
+      </div>
+
+      <div class="bg-gray-900/40 rounded-full p-1 border border-gray-800/60 relative overflow-hidden">
+        <div id="energy-progress" class="bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 h-2.5 rounded-full w-0 transition-all duration-300"></div>
+        <div id="energy-glow-element" class="absolute inset-0 bg-blue-500/20 mix-blend-screen opacity-0 animate-pulse rounded-full"></div>
+      </div>
+
+      <div id="trivia-card" class="bg-gray-900/80 border border-gray-800/80 rounded-3xl p-6 relative overflow-hidden transition-all duration-300 flex flex-col space-y-6">
+        <div id="supercharged-alert" class="absolute inset-x-0 top-0 bg-gradient-to-r from-blue-600/90 to-purple-600/90 py-1.5 px-4 text-center text-xs font-black tracking-widest uppercase text-white animate-pulse transform -translate-y-full transition-transform">
+          ⚡ EXTREME ENERGY MODE! SCORE X2! ⚡
+        </div>
+        <div class="flex items-center justify-between border-b border-gray-800 pb-4">
+          <span id="question-type-badge" class="text-xs bg-purple-500/20 text-purple-300 font-bold px-3 py-1 rounded-full border border-purple-500/30 uppercase tracking-widest font-mono">
+            模式載入中
+          </span>
+          <span class="text-xs text-gray-400 font-mono">
+            QUEST <span id="question-count-num" class="text-purple-400 font-bold">1</span> / 15
+          </span>
+        </div>
+        
+        <!-- 動態題目區 (包含單字或填空句子) -->
+        <div class="min-h-[100px] flex flex-col justify-center items-center text-center relative z-10">
+          <p id="question-prompt" class="text-xl sm:text-3xl font-bold leading-relaxed max-w-lg mx-auto text-gray-100 select-none">載入中...</p>
+          <p id="question-clue" class="text-sm text-gray-400 mt-4 bg-gray-950/40 py-2 px-4 rounded-xl border border-gray-800/40 inline-block max-w-sm hidden">---</p>
+        </div>
+        
+        <div class="relative z-10">
+          <!-- 選擇題區塊 -->
+          <div id="answer-options-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3.5"></div>
+          <!-- 手動拼寫區塊 -->
+          <div id="spelling-input-zone" class="space-y-4 hidden">
+            <div class="relative">
+              <input type="text" id="spelling-field" autocomplete="off" placeholder="輸入單字拼寫 (不分大小寫)" class="w-full bg-gray-950 border-2 border-gray-800 rounded-2xl px-5 py-4 text-center text-lg font-bold tracking-widest text-purple-300 focus:outline-none focus:border-purple-500 uppercase">
+            </div>
+            <button id="spelling-submit-btn" class="w-full py-4 px-6 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 text-white font-extrabold rounded-2xl shadow-xl transition-all duration-200">
+              送出答案 <i class="fa-solid fa-paper-plane ml-2 text-sm"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 3: GAMEOVER -->
+    <section id="view-gameover" class="max-w-xl w-full mx-auto hidden flex flex-col space-y-6">
+      <div class="bg-gray-900/60 backdrop-blur-md border border-gray-800 rounded-3xl p-8 shadow-2xl relative overflow-hidden text-center">
+        <div id="star-award-container" class="flex justify-center space-x-4 mb-4 text-gray-700">
+          <i class="fa-solid fa-star text-4xl transform -rotate-12"></i>
+          <i class="fa-solid fa-star text-6xl -translate-y-2"></i>
+          <i class="fa-solid fa-star text-4xl transform rotate-12"></i>
+        </div>
+        <h2 id="ending-title" class="text-3xl font-black tracking-wider text-white">任務完成！</h2>
+        <p id="ending-subtitle" class="text-gray-400 mt-2 text-sm">弟弟，這次的 KET 檢定衝刺表現非常亮眼喔！</p>
+        <div class="grid grid-cols-2 gap-4 my-8">
+          <div class="bg-gray-950/60 border border-gray-800 rounded-2xl p-4">
+            <p class="text-xs text-gray-400 font-mono">最終分數</p><p id="final-score" class="text-3xl font-black text-yellow-400 mt-1">0</p>
+          </div>
+          <div class="bg-gray-950/60 border border-gray-800 rounded-2xl p-4">
+            <p class="text-xs text-gray-400 font-mono">答對率</p><p id="accuracy-rate" class="text-3xl font-black text-green-400 mt-1">0%</p>
+          </div>
+        </div>
+        <button id="retry-game-btn" class="w-full py-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold rounded-2xl shadow-lg transition-transform hover:scale-[1.01]">
+          再戰一次！ <i class="fa-solid fa-rotate-left ml-2"></i>
+        </button>
+      </div>
+      <div class="bg-gray-900/40 border border-gray-800/80 rounded-2xl p-6">
+        <h3 class="text-base font-bold text-gray-200 mb-4"><i class="fa-solid fa-trophy text-yellow-500 mr-2"></i>星際排行榜</h3>
+        <div class="overflow-hidden rounded-xl border border-gray-800/60 bg-gray-950/20">
+          <table class="w-full text-left text-sm"><tbody id="leaderboard-tbody"></tbody></table>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 4: ADMIN -->
+    <section id="view-admin" class="w-full hidden flex flex-col space-y-8">
+      <div class="bg-gradient-to-r from-indigo-950/30 via-purple-950/20 to-gray-950 border border-purple-900/30 rounded-3xl p-6 relative overflow-hidden">
+        <div class="relative z-10 flex flex-col md:flex-row justify-between gap-4 items-start md:items-center">
+          <div>
+            <span class="bg-purple-500/10 text-purple-300 font-bold border border-purple-500/30 rounded-full px-3 py-1 text-xs">星際考情控制中心</span>
+            <h2 class="text-2xl font-black mt-2 text-white">親愛的哥哥/老師，您好！</h2>
+          </div>
+          <div class="flex gap-3">
+            <button id="admin-clear-records-btn" class="bg-red-900/40 hover:bg-red-600/80 border border-red-500/50 text-red-300 hover:text-white font-bold px-4 py-3 rounded-2xl text-sm transition-colors">
+              <i class="fa-solid fa-trash-can mr-2"></i>清空所有紀錄
+            </button>
+            <button id="admin-switch-to-game-btn" class="bg-purple-600 hover:bg-purple-500 text-white font-bold px-5 py-3 rounded-2xl text-sm transition-colors">
+              <i class="fa-solid fa-play mr-2"></i>進入遊戲測試
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-gray-900/40 border border-gray-800 rounded-2xl p-5"><span class="text-xs text-gray-400">總測驗場次</span><p id="widget-total-games" class="text-3xl font-bold mt-2 text-white">0</p></div>
+        <div class="bg-gray-900/40 border border-gray-800 rounded-2xl p-5"><span class="text-xs text-gray-400">歷史最高記錄</span><p id="widget-high-score" class="text-3xl font-bold mt-2 text-white">0</p></div>
+        <div class="bg-gray-900/40 border border-gray-800 rounded-2xl p-5"><span class="text-xs text-gray-400">平均分</span><p id="widget-average" class="text-3xl font-bold mt-2 text-white">0</p></div>
+        <div class="bg-gray-900/40 border border-gray-800 rounded-2xl p-5"><span class="text-xs text-gray-400">活躍考生人數</span><p id="widget-players" class="text-3xl font-bold mt-2 text-white">0</p></div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 bg-gray-900/40 border border-gray-800 rounded-3xl p-6">
+          <h3 class="font-bold text-gray-200 mb-4">測驗成績變化趨勢圖</h3>
+          <div class="relative w-full h-64 bg-gray-950/40 rounded-2xl border border-gray-800/60 p-4"><canvas id="score-trend-chart"></canvas></div>
+        </div>
+        <div class="bg-gray-900/40 border border-gray-800 rounded-3xl p-6 flex flex-col">
+          <!-- 錯題按鈕與標題區塊調整 -->
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="font-bold text-gray-200">🚨 答錯單字總排行</h3>
+            <div class="flex space-x-2">
+              <button onclick="window.exportAggregatedWrongWords('pdf')" class="bg-red-500/10 hover:bg-red-500/30 text-red-400 border border-red-500/20 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center shadow-lg" title="匯出成 PDF">
+                <i class="fa-solid fa-download mr-1"></i>PDF
+              </button>
+              <button onclick="window.exportAggregatedWrongWords('docx')" class="bg-blue-500/10 hover:bg-blue-500/30 text-blue-400 border border-blue-500/20 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center shadow-lg" title="匯出成 DOCX">
+                <i class="fa-solid fa-file-word mr-1"></i>DOCX
+              </button>
+            </div>
+          </div>
+          <!-- 移除 slice() 限制並拉高 max-h，讓所有錯題都能往下滑動顯示 -->
+          <ul id="weak-words-list" class="space-y-3 max-h-[350px] overflow-y-auto pr-2 flex-grow"></ul>
+        </div>
+      </div>
+
+      <div class="bg-gray-900/40 border border-gray-800 rounded-3xl p-6">
+        <div class="flex flex-col sm:flex-row justify-between gap-4 mb-4">
+          <h3 class="font-bold text-gray-200">實時答題歷史明細</h3>
+          <div class="flex items-center space-x-2">
+            <input type="text" id="admin-search-field" placeholder="搜尋姓名或信箱..." class="bg-gray-950 border border-gray-800 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-purple-500">
+            <button onclick="window.exportAllRecords('pdf')" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl text-sm font-bold"><i class="fa-solid fa-file-export mr-1"></i>匯出全部明細</button>
+          </div>
+        </div>
+
+        <div id="admin-action-bar" class="hidden bg-gray-900 border border-purple-500/40 px-5 py-3 rounded-2xl mb-4 items-center justify-between">
+           <div><span class="text-white font-bold text-sm">已選取 <span id="selected-count" class="text-yellow-400">0</span> 項</span><span class="text-gray-400 text-xs ml-4 border-l border-gray-700 pl-4">共錯 <span id="selected-wrong-count" class="text-red-400 font-bold mx-1">0</span> 題</span></div>
+           <div class="flex space-x-2">
+             <button onclick="window.deleteSelected()" class="bg-red-500/10 text-red-400 px-3 py-1.5 rounded-lg text-sm font-bold"><i class="fa-solid fa-trash mr-1"></i>刪除</button>
+             <button onclick="window.exportSelected('docx')" class="bg-blue-500/10 text-blue-300 px-3 py-1.5 rounded-lg text-sm font-bold"><i class="fa-solid fa-file-word mr-1"></i>DOCX</button>
+             <button onclick="window.exportSelected('pdf')" class="bg-green-500/10 text-green-300 px-3 py-1.5 rounded-lg text-sm font-bold"><i class="fa-solid fa-file-pdf mr-1"></i>PDF</button>
+           </div>
+        </div>
+
+        <div class="overflow-x-auto rounded-2xl border border-gray-800 bg-gray-950/20">
+          <table class="w-full text-left text-sm whitespace-nowrap">
+            <thead class="bg-gray-900/60 text-xs text-gray-400">
+              <tr>
+                <th class="p-4"><input type="checkbox" id="chk-all" onclick="window.toggleSelectAll()" class="custom-checkbox"></th>
+                <th class="p-4">姓名</th><th class="p-4">得分</th><th class="p-4">準確度</th><th class="p-4">測驗時長</th><th class="p-4">日期</th><th class="p-4 text-center">詳情</th>
+              </tr>
+            </thead>
+            <tbody id="attempts-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- MODALS -->
+    <div id="clear-confirm-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300">
+      <div class="bg-gray-900 border border-red-900/50 rounded-3xl p-6 max-w-sm w-full mx-4 transform scale-95 transition-transform duration-300">
+        <h3 class="text-xl font-black text-white text-center mb-4">警告：永久清除資料</h3>
+        <p class="text-gray-400 text-sm mb-6 text-center">確定要刪除所有的歷史測驗紀錄嗎？此動作無法復原。</p>
+        <div class="flex space-x-3">
+          <button id="cancel-clear-btn" class="flex-1 bg-gray-800 text-gray-300 py-3 rounded-2xl font-bold">取消</button>
+          <button id="confirm-clear-btn" class="flex-1 bg-red-600 text-white py-3 rounded-2xl font-bold">確認清除</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="attempt-details-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300">
+      <div class="bg-gray-900 border border-purple-900/50 rounded-3xl p-6 max-w-md w-full mx-4 transform scale-95 transition-transform duration-300">
+        <div class="flex justify-between border-b border-gray-800 pb-3 mb-4">
+          <h3 class="text-lg font-black text-white">測驗紀錄詳情</h3>
+          <button id="close-details-btn" class="text-gray-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+        </div>
+        <div id="attempt-details-content" class="text-sm text-gray-300 space-y-4 max-h-[60vh] overflow-y-auto pr-2"></div>
+      </div>
+    </div>
+
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    const adminEmail = 'ianw.solar@gmail.com';
+    const appId = 'ket-vocabulary-stellar';
+    // 新版格式試算表連結
+    const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/1D8ewA8_2ISr0ob7TSAOpcLYfYFjA3815j-7BK9udg6w/export?format=csv";
+
+    let db = null; let auth = null; let isOfflineMode = false; let vocabularyList = [];
+
+    const gameState = {
+      user: null, currentView: 'signin', score: 0, combo: 0, energy: 0, lives: 5, isSupercharged: false,
+      currentQuestionIndex: 0, totalRoundQuestions: 15, correctCount: 0, maxCombo: 0, currentQuestion: null, currentMode: 'choice',
+      wrongWordsRecord: [], rawAttemptHistory: [], unansweredWords: [], wrongWordsPool: [],
+      isTransitioning: false, isGameOver: false, selectedIds: new Set(), visibleIds: [],
+      startTime: 0, timeTaken: 0 // 新增時間追蹤
+    };
+
+    function formatDuration(seconds) {
+      if (!seconds && seconds !== 0) return '未知';
+      const m = Math.floor(seconds / 60);
+      const s = seconds % 60;
+      return m > 0 ? `${m}分${s}秒` : `${s}秒`;
+    }
+
+    // 核心濾除器：去除所有括號內容（包含全形與半形），確保只留下純粹的「中文單字」
+    function getBaseTranslation(text) { 
+      if (!text) return ''; 
+      return text.replace(/[\(\[（].*?[\)\]）]/g, '').trim(); 
+    }
+
+    const views = { signin: document.getElementById('view-signin'), gameplay: document.getElementById('view-gameplay'), gameover: document.getElementById('view-gameover'), admin: document.getElementById('view-admin') };
+
+    // --- 程式啟動管理器 ---
+    let isVocabLoaded = false;
+    let isAuthResolved = false;
+
+    function resolveStartup() {
+      if (!isAuthResolved) return; 
+      const overlay = document.getElementById('loading-overlay');
+      
+      if (!gameState.user) {
+        overlay.classList.add('opacity-0'); setTimeout(() => overlay.classList.add('hidden'), 500);
+        navigateToView('signin'); return;
+      }
+      if (!isVocabLoaded) { document.getElementById('loading-text').innerText = "等待雲端題庫載入中..."; return; }
+
+      overlay.classList.add('opacity-0'); setTimeout(() => overlay.classList.add('hidden'), 500);
+      document.getElementById('user-profile').classList.remove('hidden');
+      document.getElementById('user-name').innerText = gameState.user.displayName || 'Player';
+      
+      // 強制寫入大頭貼
+      if (gameState.user.photoURL) document.getElementById('user-avatar').src = gameState.user.photoURL;
+      else document.getElementById('user-avatar').src = "https://api.dicebear.com/7.x/pixel-art/svg?seed=" + gameState.user.uid;
+      
+      const badge = document.getElementById('user-role-badge');
+      if (gameState.user.email === adminEmail) {
+        badge.innerText = "ROLE: SUPERVISOR"; badge.className = "text-xs text-red-400 font-mono font-black tracking-wider animate-pulse";
+        navigateToView('admin');
+      } else {
+        badge.innerText = "ROLE: PLAYER"; badge.className = "text-xs text-purple-400 font-mono tracking-wider";
+        resetGameState(); navigateToView('gameplay');
+      }
+    }
+
+    function parseCSVLine(text) {
+      let p='', row=[''], ret=[row], i=0, r=0, s=!0, l;
+      for (l of text) {
+        if ('"'===l) { if(s && l===p) row[i]+=l; s=!s; }
+        else if (','===l && s) l=row[++i]='';
+        else if ('\n'===l && s) { if('\r'===p) row[i]=row[i].slice(0,-1); row=ret[++r]=[l='']; i=0; }
+        else row[i]+=l; p=l;
+      }
+      return ret;
+    }
+
+    // AI 智慧掃描器
+    async function loadExternalVocabulary() {
+      try {
+        const res = await fetch(SHEET_CSV_URL);
+        if (!res.ok) throw new Error("Fetch failed");
+        const rows = parseCSVLine(await res.text());
+        vocabularyList = [];
+        
+        let maxCols = 0;
+        for (let i=0; i<Math.min(rows.length, 5); i++) maxCols = Math.max(maxCols, rows[i].length);
+        let scores = Array(maxCols).fill(0).map(() => ({ w:0, t:0, c:0 }));
+
+        for (let r=1; r<Math.min(rows.length, 25); r++) {
+           const row = rows[r];
+           for (let c=0; c<row.length; c++) {
+              const txt = (row[c] || '').trim();
+              if (!txt) continue;
+              const isChinese = /[\u4E00-\u9FFF]/.test(txt);
+              const wordCount = txt.split(/\s+/).length;
+              const charCount = txt.length;
+
+              if (isChinese) {
+                 if (charCount <= 12 && !/[。！？]/.test(txt)) scores[c].t += 3;
+                 else if (txt.includes('(') || txt.includes('（')) scores[c].t += 1;
+                 else if (charCount > 15 || /[。！？]/.test(txt)) scores[c].t -= 2; 
+              } else {
+                 if (txt.includes('_')) scores[c].c += 5;
+                 else if (wordCount >= 4 || charCount > 25) scores[c].c += 2;
+                 else if (wordCount <= 3 && charCount > 0 && charCount <= 20) scores[c].w += 2;
+              }
+           }
+        }
+        
+        let wCol=0, tCol=1, cCol=2;
+        let maxW=-999, maxT=-999, maxC=-999;
+        for (let i=0; i<maxCols; i++) {
+           if (scores[i].w > maxW) { maxW=scores[i].w; wCol=i; }
+           if (scores[i].t > maxT) { maxT=scores[i].t; tCol=i; }
+           if (scores[i].c > maxC) { maxC=scores[i].c; cCol=i; }
+        }
+
+        if (wCol === cCol) cCol = (wCol + 1) % maxCols;
+        if (tCol === wCol) tCol = (wCol + 2) % maxCols;
+
+        for (let i=1; i<rows.length; i++) {
+          const row = rows[i];
+          if (row.length > wCol) {
+             let rawWord = (row[wCol]||'').trim();
+             if (!rawWord || rawWord.toLowerCase().includes('word') || rawWord.includes('單字')) continue;
+             let cleanWord = rawWord.replace(/[\(\[（].*?[\)\]）]/g, '').trim();
+             vocabularyList.push({ word: cleanWord, clue: (row[cCol]||'').trim(), translation: (row[tCol]||'').trim() });
+          }
+        }
+      } catch (e) {
+        console.error("題庫載入失敗:", e);
+        vocabularyList = [{ word: "ability", clue: "She has the _____ to speak.", translation: "能力" }];
+      }
+      isVocabLoaded = true;
+      resolveStartup();
+    }
+
+    // --- Firebase Init ---
+    try {
+      const app = initializeApp({ apiKey: "AIzaSyCMwOOb0ib_gl5A2cgqw9Lqfrw8D_zJoQM", authDomain: "ket-training-9b88d.firebaseapp.com", projectId: "ket-training-9b88d", storageBucket: "ket-training-9b88d.firebasestorage.app", messagingSenderId: "1048640604545", appId: "1:1048640604545:web:97763f7dec221ca9eac080" });
+      auth = getAuth(app); db = getFirestore(app);
+    } catch (e) { isOfflineMode = true; }
+
+    // --- Audio & Particles ---
+    class SoundEngine {
+      constructor() { this.audioCtx = null; }
+      init() { if (!this.audioCtx) this.audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+      playCorrect(c) { this.init(); if(!this.audioCtx)return; const n=this.audioCtx.currentTime, o=this.audioCtx.createOscillator(), g=this.audioCtx.createGain(); o.connect(g); g.connect(this.audioCtx.destination); o.frequency.setValueAtTime(523*(1+c*0.08), n); g.gain.setValueAtTime(0.1, n); g.gain.exponentialRampToValueAtTime(0.001, n+0.3); o.start(n); o.stop(n+0.3); }
+      playWrong() { this.init(); if(!this.audioCtx)return; const n=this.audioCtx.currentTime, o=this.audioCtx.createOscillator(), g=this.audioCtx.createGain(); o.connect(g); g.connect(this.audioCtx.destination); o.type='sawtooth'; o.frequency.setValueAtTime(160, n); o.frequency.linearRampToValueAtTime(40, n+0.4); g.gain.setValueAtTime(0.15, n); g.gain.exponentialRampToValueAtTime(0.001, n+0.4); o.start(n); o.stop(n+0.4); }
+      playSupercharge() { this.init(); if(!this.audioCtx)return; const n=this.audioCtx.currentTime, o=this.audioCtx.createOscillator(), g=this.audioCtx.createGain(); o.connect(g); g.connect(this.audioCtx.destination); o.frequency.setValueAtTime(220, n); g.gain.setValueAtTime(0.1, n); g.gain.exponentialRampToValueAtTime(0.001, n+0.5); o.start(n); o.stop(n+0.5); }
+      playFanfare() { this.init(); if(!this.audioCtx)return; [261,329,392].forEach((f,i)=>{const n=this.audioCtx.currentTime,o=this.audioCtx.createOscillator(),g=this.audioCtx.createGain();o.connect(g);g.connect(this.audioCtx.destination);o.frequency.setValueAtTime(f,n+i*0.1);g.gain.setValueAtTime(0.1,n+i*0.1);g.gain.exponentialRampToValueAtTime(0.001,n+i*0.1+0.4);o.start(n+i*0.1);o.stop(n+i*0.1+0.4);}); }
+    }
+
+    class ParticleEngine {
+      constructor(canvas) { this.canvas = canvas; this.ctx = canvas.getContext('2d'); this.particles = []; this.resize(); window.addEventListener('resize', ()=>this.resize()); }
+      resize() { this.canvas.width = window.innerWidth; this.canvas.height = window.innerHeight; }
+      addBurst(x, y, colorStr, isHeart=false) { for(let i=0;i<20;i++){ const a=Math.random()*Math.PI*2, s=Math.random()*4+1; this.particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,r:Math.random()*3+2,c:colorStr,l:1,d:0.02,g:0.05,isHeart}); } }
+      addAmbience() { this.particles.push({ x:window.innerWidth*(0.2+Math.random()*0.6), y:window.innerHeight*(0.15+Math.random()*0.7), vx:(Math.random()-0.5)*1.5, vy:-Math.random()*1.5-0.5, r:Math.random()*2.5+1, c:`hsla(${Math.random()*20+200},100%,70%,0.9)`, l:0.8, d:0.03, g:-0.04, isHeart:false }); }
+      update() {
+        this.ctx.clearRect(0,0,this.canvas.width,this.canvas.height);
+        for(let i=this.particles.length-1;i>=0;i--){
+          const p=this.particles[i]; p.x+=p.vx; p.y+=p.vy; p.vy+=p.g; p.l-=p.d;
+          if(p.l<=0){this.particles.splice(i,1);continue;}
+          this.ctx.beginPath(); this.ctx.fillStyle=p.c; this.ctx.globalAlpha=p.l;
+          if(p.isHeart){ const h=p.r*p.l; this.ctx.moveTo(p.x,p.y+h/4); this.ctx.bezierCurveTo(p.x-h/2,p.y-h/2,p.x-h,p.y+h/3,p.x,p.y+h); this.ctx.bezierCurveTo(p.x+h,p.y+h/3,p.x+h/2,p.y-h/2,p.x,p.y+h/4); this.ctx.fill(); }
+          else { this.ctx.arc(p.x,p.y,p.r*p.l,0,Math.PI*2); this.ctx.fill(); }
+        }
+        this.ctx.globalAlpha=1.0;
+      }
+    }
+
+    const audio = new SoundEngine();
+    const fxEngine = new ParticleEngine(document.getElementById('bg-canvas'));
+    function loop(){ fxEngine.update(); if(gameState.isSupercharged && gameState.currentView==='gameplay') fxEngine.addAmbience(); requestAnimationFrame(loop); } loop();
+
+    function resetGameState() {
+      gameState.score=0; gameState.combo=0; gameState.energy=0; gameState.lives=5; gameState.isSupercharged=false;
+      gameState.currentQuestionIndex=0; gameState.correctCount=0; gameState.maxCombo=0; gameState.wrongWordsRecord=[];
+      gameState.unansweredWords=[...vocabularyList]; gameState.wrongWordsPool=[]; gameState.isTransitioning=false; gameState.isGameOver=false;
+      gameState.startTime=Date.now(); gameState.timeTaken=0;
+      updateHeaderProgressUI();
+    }
+
+    function updateHeaderProgressUI() {
+      document.getElementById('game-score').innerText = String(gameState.score).padStart(5, '0');
+      document.getElementById('combo-display').innerText = `COMBO X${gameState.combo}`;
+      document.getElementById('multiplier-text').innerText = `${((1+(gameState.combo/5))*(gameState.isSupercharged?2:1)).toFixed(1)}X`;
+      document.getElementById('energy-progress').style.width = `${gameState.energy}%`;
+      const hc=document.getElementById('heart-container'); hc.innerHTML='';
+      for(let i=1;i<=5;i++) hc.innerHTML+=`<i class="fa-solid fa-heart text-lg ${i<=gameState.lives?'text-red-500':'text-gray-800'}"></i>`;
+    }
+
+    function navigateToView(view) {
+      gameState.currentView = view;
+      document.getElementById('return-admin-btn').classList.toggle('hidden', !(gameState.user?.email===adminEmail && view!=='admin' && view!=='signin'));
+      ['signin','gameplay','gameover','admin'].forEach(v => document.getElementById(`view-${v}`).classList.toggle('hidden', v!==view));
+      if (view==='gameplay') loadNextQuestion(); else if (view==='gameover') populateLeaderboardUI(); else if (view==='admin') loadAdminStatistics();
+    }
+    document.getElementById('return-admin-btn').onclick = () => navigateToView('admin');
+
+    function getDisplayClue(word, clue) {
+      if (!clue || typeof clue !== 'string' || clue.trim() === '') return `(請拼出單字: ${word.replace(/[a-zA-Z]/g, '_')})`;
+      if (clue.includes('_')) return clue;
+      try {
+        const reg = new RegExp(`\\b${word}\\b`, 'gi');
+        if (reg.test(clue)) return clue.replace(reg, '_____');
+      } catch(e) {}
+      return clue + "\n(請填入: _____)";
+    }
+
+    function loadNextQuestion() {
+      if (gameState.lives<=0 || (gameState.unansweredWords.length===0 && gameState.wrongWordsPool.length===0) || gameState.currentQuestionIndex>=gameState.totalRoundQuestions) return endTheGame();
+      gameState.isTransitioning=false; gameState.currentQuestionIndex++;
+      document.getElementById('question-count-num').innerText=gameState.currentQuestionIndex;
+      
+      let pool = (gameState.wrongWordsPool.length>0 && (gameState.unansweredWords.length===0||Math.random()>0.5)) ? gameState.wrongWordsPool : gameState.unansweredWords;
+      gameState.currentQuestion = pool[Math.floor(Math.random()*pool.length)];
+      gameState.currentMode = ['choice','spelling','translate_choice'][Math.floor(Math.random()*3)];
+      
+      const qPrompt=document.getElementById('question-prompt'), qClue=document.getElementById('question-clue'), inZone=document.getElementById('spelling-input-zone'), chZone=document.getElementById('answer-options-grid');
+      document.getElementById('trivia-card').classList.remove('animate-shake','border-red-500/40','border-green-500/40');
+      document.getElementById('spelling-field').value='';
+      
+      if(gameState.currentMode==='choice'){
+        document.getElementById('question-type-badge').innerText = '句子填空克漏字';
+        document.getElementById('question-type-badge').className = 'text-xs bg-purple-500/20 text-purple-300 font-bold px-3 py-1 rounded-full border border-purple-500/30 uppercase tracking-widest font-mono';
+        qPrompt.innerText = getDisplayClue(gameState.currentQuestion.word, gameState.currentQuestion.clue); 
+        qClue.classList.add('hidden'); 
+        inZone.classList.add('hidden'); chZone.classList.remove('hidden');
+        generateChoiceButtons(gameState.currentQuestion, 'word');
+        
+      } else if(gameState.currentMode==='spelling'){
+        document.getElementById('question-type-badge').innerText = '中翻英手動挑戰';
+        document.getElementById('question-type-badge').className = 'text-xs bg-pink-500/20 text-pink-300 font-bold px-3 py-1 rounded-full border border-pink-500/30 uppercase tracking-widest font-mono';
+        qPrompt.innerText = getBaseTranslation(gameState.currentQuestion.translation); 
+        qClue.innerText = "請根據上方中文，拼出對應的英文單字"; 
+        qClue.classList.remove('hidden'); chZone.classList.add('hidden'); inZone.classList.remove('hidden');
+        setTimeout(()=>document.getElementById('spelling-field').focus(), 150);
+        
+      } else {
+        document.getElementById('question-type-badge').innerText = '英翻中語意匹配';
+        document.getElementById('question-type-badge').className = 'text-xs bg-indigo-500/20 text-indigo-300 font-bold px-3 py-1 rounded-full border border-indigo-500/30 uppercase tracking-widest font-mono';
+        qPrompt.innerHTML = `請選出單字的意思：<br><span class="text-yellow-400 text-4xl underline select-all mt-3 inline-block">${gameState.currentQuestion.word}</span>`;
+        qClue.classList.add('hidden'); 
+        inZone.classList.add('hidden'); chZone.classList.remove('hidden');
+        generateChoiceButtons(gameState.currentQuestion, 'translation');
+      }
+
+      if (gameState.isSupercharged) {
+        document.getElementById('supercharged-alert').classList.remove('-translate-y-full');
+        document.getElementById('trivia-card').classList.add('neon-border-blue');
+      } else {
+        document.getElementById('supercharged-alert').classList.add('-translate-y-full');
+        document.getElementById('trivia-card').classList.remove('neon-border-blue');
+      }
+    }
+
+    function generateChoiceButtons(correct, type) {
+      const grid = document.getElementById('answer-options-grid'); grid.innerHTML='';
+      let dist=[], arr=[...vocabularyList].sort(()=>0.5-Math.random());
+      for(let w of arr){ if(w.word!==correct.word && dist.length<3) dist.push(w); }
+      [correct, ...dist].sort(()=>0.5-Math.random()).forEach(opt => {
+        const b = document.createElement('button'); b.className="w-full text-left bg-gray-950 hover:bg-gray-800 border-2 border-gray-800 p-4 rounded-2xl text-sm font-semibold transition-all flex items-center justify-between group active:scale-[0.98]";
+        const label = document.createElement('span');
+        label.innerText = type==='word' ? opt.word : getBaseTranslation(opt.translation);
+        b.appendChild(label);
+        b.innerHTML += '<i class="fa-solid fa-chevron-right text-gray-700 group-hover:text-purple-400 group-hover:translate-x-1 transition-all text-xs"></i>';
+        b.onclick=()=>{ b.blur(); evaluateAnswer(opt.word===correct.word); }; grid.appendChild(b);
+      });
+    }
+
+    document.getElementById('spelling-submit-btn').onclick = () => evaluateAnswer(document.getElementById('spelling-field').value.trim().toLowerCase()===gameState.currentQuestion.word.toLowerCase());
+    document.getElementById('spelling-field').onkeypress = (e) => { if(e.key==='Enter') document.getElementById('spelling-submit-btn').click(); };
+
+    function evaluateAnswer(isCorrect) {
+      if(gameState.isTransitioning||gameState.isGameOver) return; gameState.isTransitioning=true;
+      const card=document.getElementById('trivia-card'), cx=window.innerWidth/2, cy=window.innerHeight/2;
+      if(isCorrect){
+        gameState.unansweredWords=gameState.unansweredWords.filter(w=>w.word!==gameState.currentQuestion.word);
+        gameState.wrongWordsPool=gameState.wrongWordsPool.filter(w=>w.word!==gameState.currentQuestion.word);
+        gameState.combo++; gameState.correctCount++; if(gameState.combo>gameState.maxCombo) gameState.maxCombo=gameState.combo;
+        gameState.score += Math.round(100 * (1+gameState.combo/5) * (gameState.isSupercharged?2:1));
+        if(!gameState.isSupercharged){ gameState.energy=Math.min(100,gameState.energy+15); if(gameState.energy>=100){ gameState.isSupercharged=true; audio.playSupercharge(); card.classList.add('animate-shake'); } }
+        audio.playCorrect(gameState.combo); fxEngine.addBurst(cx,cy,'#fbbf24'); card.classList.add('border-green-500/40');
+        setTimeout(()=>loadNextQuestion(), 600);
+      } else {
+        if(!gameState.wrongWordsPool.some(w=>w.word===gameState.currentQuestion.word)) gameState.wrongWordsPool.push(gameState.currentQuestion);
+        if(!gameState.wrongWordsRecord.includes(gameState.currentQuestion.word)) gameState.wrongWordsRecord.push(gameState.currentQuestion.word);
+        audio.playWrong(); fxEngine.addBurst(cx,cy,'#ef4444',true); gameState.lives--; gameState.combo=0; gameState.energy=0; gameState.isSupercharged=false;
+        card.classList.add('animate-shake','border-red-500/40');
+        
+        const modal = document.createElement('div'); modal.className="bg-red-950 border-2 border-red-500 p-5 rounded-2xl absolute inset-4 z-50 text-center flex flex-col justify-center animate-bounce-in";
+        modal.innerHTML=`<p class="text-red-400 font-bold mb-2">正確答案：</p><p class="text-3xl text-white font-bold mb-2 uppercase">${gameState.currentQuestion.word}</p><p class="text-sm text-gray-300">${gameState.currentQuestion.translation}</p>`;
+        card.appendChild(modal); setTimeout(()=>{modal.remove(); loadNextQuestion();}, 2200);
+      }
+      updateHeaderProgressUI();
+    }
+
+    async function endTheGame() {
+      if(gameState.isGameOver) return; gameState.isGameOver=true; audio.playFanfare();
+      gameState.timeTaken = Math.round((Date.now() - gameState.startTime) / 1000);
+      const acc = Math.round((gameState.correctCount/gameState.totalRoundQuestions)*100);
+      document.getElementById('final-score').innerText=gameState.score; document.getElementById('accuracy-rate').innerText=acc+'%';
+      navigateToView('gameover');
+      const payload={uid:gameState.user?.uid||'guest', displayName:gameState.user?.displayName||'訪客', email:gameState.user?.email||'guest', score:gameState.score, totalQuestions:gameState.totalRoundQuestions, correctCount:gameState.correctCount, accuracy:acc, maxCombo:gameState.maxCombo, wrongWords:gameState.wrongWordsRecord, timeTaken:gameState.timeTaken, timestamp:Date.now()};
+      if(!isOfflineMode&&db&&gameState.user) try{ await addDoc(collection(db,'artifacts',appId,'public','data','scores'), payload); }catch(e){}
+      else { const c=JSON.parse(localStorage.getItem('ket_scores')||'[]'); payload.docId='loc_'+Date.now(); c.push(payload); localStorage.setItem('ket_scores',JSON.stringify(c)); }
+    }
+
+    async function populateLeaderboardUI() {
+      let rec=[];
+      if(!isOfflineMode&&db&&gameState.user) try{ const qs=await getDocs(collection(db,'artifacts',appId,'public','data','scores')); qs.forEach(d=>rec.push(d.data())); }catch(e){}
+      if(rec.length===0) rec=JSON.parse(localStorage.getItem('ket_scores')||'[]');
+      const tb=document.getElementById('leaderboard-tbody'); tb.innerHTML='';
+      rec.sort((a,b)=>b.score-a.score).slice(0,5).forEach((r,i) => {
+        tb.innerHTML+=`<tr class="border-b border-gray-800"><td class="p-3 text-yellow-400">#${i+1}</td><td class="p-3">${r.displayName}</td><td class="p-3 text-right text-yellow-400">${r.score}</td><td class="p-3 text-right text-green-400">${r.accuracy}%</td></tr>`;
+      });
+    }
+
+    async function loadAdminStatistics() {
+      let att=[];
+      if(!isOfflineMode&&db&&gameState.user) try{ const qs=await getDocs(collection(db,'artifacts',appId,'public','data','scores')); qs.forEach(d=>att.push({docId:d.id,...d.data()})); }catch(e){}
+      if(att.length===0) att=JSON.parse(localStorage.getItem('ket_scores')||'[]');
+      gameState.rawAttemptHistory=att; gameState.selectedIds.clear(); updateAdminDashboardUI();
+    }
+
+    function updateAdminDashboardUI() {
+      const att=gameState.rawAttemptHistory, tg=att.length, hs=tg>0?Math.max(...att.map(a=>a.score)):0, avg=tg>0?Math.round(att.reduce((s,a)=>s+a.score,0)/tg):0;
+      document.getElementById('widget-total-games').innerText=tg; document.getElementById('widget-high-score').innerText=hs; document.getElementById('widget-average').innerText=avg; document.getElementById('widget-players').innerText=new Set(att.map(a=>a.email)).size;
+      const kw = document.getElementById('admin-search-field')?.value.toLowerCase().trim() || "";
+      renderAdminTable(kw ? att.filter(a=>a.displayName.toLowerCase().includes(kw)||a.email.toLowerCase().includes(kw)) : att);
+      renderAdminTrendChart(att); renderWrongWordsSection(att); updateActionBarUI();
+    }
+
+    function renderAdminTable(data) {
+      const tb=document.getElementById('attempts-table-body'); tb.innerHTML='';
+      const sorted=[...data].sort((a,b)=>b.timestamp-a.timestamp); gameState.visibleIds=sorted.map(a=>a.docId);
+      sorted.forEach(a => {
+        const ds=new Date(a.timestamp).toLocaleDateString('zh-TW',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+        tb.innerHTML+=`<tr id="row-${a.docId}" class="border-b border-gray-800"><td class="p-4"><input type="checkbox" id="chk-${a.docId}" onclick="window.toggleSelect('${a.docId}')" class="custom-checkbox" ${gameState.selectedIds.has(a.docId)?'checked':''}></td><td class="p-4">${a.displayName}</td><td class="p-4 text-yellow-400">${a.score}</td><td class="p-4">${a.accuracy}%</td><td class="p-4">${formatDuration(a.timeTaken)}</td><td class="p-4">${ds}</td><td class="p-4 text-center"><button onclick="window.showAttemptDetails('${a.docId}')" class="text-purple-400 hover:text-purple-300"><i class="fa-solid fa-magnifying-glass"></i></button></td></tr>`;
+      });
+      const chkAll = document.getElementById('chk-all');
+      if (chkAll) chkAll.checked = gameState.visibleIds.length>0 && gameState.visibleIds.every(id=>gameState.selectedIds.has(id));
+    }
+
+    window.toggleSelect = (id) => { gameState.selectedIds.has(id)?gameState.selectedIds.delete(id):gameState.selectedIds.add(id); document.getElementById('chk-all').checked=gameState.visibleIds.every(x=>gameState.selectedIds.has(x)); updateActionBarUI(); };
+    window.toggleSelectAll = () => { const chk=document.getElementById('chk-all').checked; gameState.visibleIds.forEach(id=>{ chk?gameState.selectedIds.add(id):gameState.selectedIds.delete(id); const c=document.getElementById(`chk-${id}`); if(c)c.checked=chk; }); updateActionBarUI(); };
+    
+    function updateActionBarUI() {
+      const bar=document.getElementById('admin-action-bar'); bar.classList.toggle('hidden',gameState.selectedIds.size===0); bar.classList.toggle('flex',gameState.selectedIds.size>0);
+      document.getElementById('selected-count').innerText=gameState.selectedIds.size;
+      let wc=0; gameState.selectedIds.forEach(id=>{ const r=gameState.rawAttemptHistory.find(a=>a.docId===id); if(r&&r.wrongWords) wc+=r.wrongWords.length; }); document.getElementById('selected-wrong-count').innerText=wc;
+    }
+
+    document.getElementById('admin-search-field').oninput = updateAdminDashboardUI;
+
+    window.deleteSelected = async () => {
+      if(!confirm('確定刪除選取的紀錄?')) return;
+      const ids=Array.from(gameState.selectedIds); ids.forEach(id=>{ const r=document.getElementById(`row-${id}`); if(r)r.classList.add('row-deleting'); });
+      if(!isOfflineMode&&db) await Promise.all(ids.map(id=>deleteDoc(doc(db,'artifacts',appId,'public','data','scores',id))));
+      else localStorage.setItem('ket_scores',JSON.stringify(JSON.parse(localStorage.getItem('ket_scores')).filter(a=>!ids.includes(a.docId))));
+      setTimeout(()=>{ gameState.rawAttemptHistory=gameState.rawAttemptHistory.filter(a=>!ids.includes(a.docId)); gameState.selectedIds.clear(); updateAdminDashboardUI(); }, 300);
+    };
+
+    window.exportSelected = (fmt) => executeExportProcessor(gameState.rawAttemptHistory.filter(a=>gameState.selectedIds.has(a.docId)), fmt);
+    window.exportAllRecords = (fmt) => executeExportProcessor(gameState.rawAttemptHistory, fmt);
+
+    // 總錯題彙整匯出 (升級為雙欄省紙版面)
+    window.exportAggregatedWrongWords = (fmt) => {
+      const att = gameState.rawAttemptHistory;
+      if (!att || att.length === 0) return alert("無資料可匯出！");
+
+      const m = {};
+      att.forEach(a => {
+        if (a.wrongWords) a.wrongWords.forEach(w => m[w] = (m[w] || 0) + 1);
+      });
+
+      const sorted = Object.entries(m).sort((a, b) => b[1] - a[1]);
+      if (sorted.length === 0) return alert("沒有任何錯題記錄！");
+
+      let html = `<div style="text-align:center; margin-bottom:20px;"><h2 style="color:#4b5563; font-size:24px;">KET 單字測驗 - 總錯題頻率彙整表</h2><p style="color:#6b7280; font-size:14px;">產出時間：${new Date().toLocaleString('zh-TW')} | 共計：${sorted.length} 詞</p></div>`;
+      
+      // 使用 6 個 <th> 建立雙欄 (兩行) 並排效果，中間以加粗紅線分隔
+      html += `<table style="width:100%; border-collapse:collapse; font-size:13px; table-layout:fixed;">
+        <thead>
+          <tr style="background-color:#fee2e2; color:#991b1b; text-align:center;">
+            <th style="padding:8px; border:1px solid #fca5a5; width:8%;">錯誤</th>
+            <th style="padding:8px; border:1px solid #fca5a5; width:21%;">英文單字</th>
+            <th style="padding:8px; border:1px solid #fca5a5; width:21%; border-right:3px solid #ef4444;">中文翻譯</th>
+            <th style="padding:8px; border:1px solid #fca5a5; width:8%;">錯誤</th>
+            <th style="padding:8px; border:1px solid #fca5a5; width:21%;">英文單字</th>
+            <th style="padding:8px; border:1px solid #fca5a5; width:21%;">中文翻譯</th>
+          </tr>
+        </thead>
+        <tbody>`;
+
+      // 每次迴圈抓取兩個單字 (item1 和 item2) 放進同一橫列
+      for (let i = 0; i < sorted.length; i += 2) {
+        const item1 = sorted[i];
+        const item2 = sorted[i + 1];
+
+        const w1 = item1[0], c1 = item1[1];
+        const v1 = vocabularyList.find(x => x.word === w1);
+        const trans1 = getBaseTranslation(v1 ? v1.translation : '無翻譯');
+
+        let tr = `<tr>
+          <td style="padding:8px; border:1px solid #fca5a5; text-align:center; font-weight:bold; color:#dc2626;">${c1} 次</td>
+          <td style="padding:8px; border:1px solid #fca5a5; font-weight:bold; padding-left:10px; color:#000000;">${w1}</td>
+          <td style="padding:8px; border:1px solid #fca5a5; border-right:3px solid #ef4444; color:#4b5563; padding-left:10px;">${trans1}</td>`;
+
+        if (item2) {
+          const w2 = item2[0], c2 = item2[1];
+          const v2 = vocabularyList.find(x => x.word === w2);
+          const trans2 = getBaseTranslation(v2 ? v2.translation : '無翻譯');
+          tr += `
+          <td style="padding:8px; border:1px solid #fca5a5; text-align:center; font-weight:bold; color:#dc2626;">${c2} 次</td>
+          <td style="padding:8px; border:1px solid #fca5a5; font-weight:bold; padding-left:10px; color:#000000;">${w2}</td>
+          <td style="padding:8px; border:1px solid #fca5a5; color:#4b5563; padding-left:10px;">${trans2}</td>`;
+        } else {
+          // 如果單字總數是奇數，最後一格補空白
+          tr += `
+          <td style="padding:8px; border:1px solid #fca5a5;"></td>
+          <td style="padding:8px; border:1px solid #fca5a5;"></td>
+          <td style="padding:8px; border:1px solid #fca5a5;"></td>`;
+        }
+        tr += `</tr>`;
+        html += tr;
+      }
+      html += `</tbody></table>`;
+
+      if (fmt === 'docx') {
+        const source = 'data:application/vnd.ms-word;charset=utf-8,' + encodeURIComponent("<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>KET 總錯題表</title><style>body{font-family:'Microsoft JhengHei',sans-serif;}</style></head><body>" + html + "</body></html>");
+        const link = document.createElement("a"); link.href = source; link.download = `KET總錯題表_${Date.now()}.doc`; link.click();
+      } else {
+        const opt = {
+          margin: 10,
+          filename: `KET總錯題表_${Date.now()}.pdf`,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2 },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+        const element = document.createElement('div');
+        element.innerHTML = `<div style="font-family:'Microsoft JhengHei',sans-serif; padding:10px; color:#000000;">${html}</div>`;
+        html2pdf().set(opt).from(element).save();
+      }
+    };
+
+    function executeExportProcessor(records, format) {
+      if (!records||records.length===0) return alert("找不到可匯出的資料！");
+      let html = `<div style="text-align:center; margin-bottom:30px;"><h2 style="color:#4b5563; font-size:24px;">KET 單字測驗 錯題與成績分析報告</h2><p style="color:#6b7280; font-size:14px;">產出時間：${new Date().toLocaleString('zh-TW')}</p></div>`;
+      records.sort((a,b)=>b.timestamp-a.timestamp).forEach(r => {
+        html += `<div style="border:1px solid #e5e7eb; border-radius:8px; padding:15px; margin-bottom:20px; background-color:#f9fafb;"><h3 style="color:#111827; margin-top:0;">${r.displayName}</h3><ul style="color:#374151; margin-bottom:15px;"><li>測驗時間：${new Date(r.timestamp).toLocaleString('zh-TW')}</li><li>測驗時長：${formatDuration(r.timeTaken)}</li><li>最終得分：<b>${r.score}</b> 分</li><li>答題準確度：<b>${r.accuracy}%</b></li></ul>`;
+        if (r.wrongWords&&r.wrongWords.length>0) {
+          html += `<h4 style="color:#dc2626; margin-bottom:10px;">需加強單字清單 (${r.wrongWords.length} 題)：</h4><table style="width:100%; border-collapse:collapse; margin-bottom:10px; font-size:14px;"><thead><tr style="background-color:#fee2e2; color:#991b1b; text-align:left;"><th style="padding:8px; border:1px solid #fca5a5; width:30%;">英文單字</th><th style="padding:8px; border:1px solid #fca5a5;">中文翻譯</th></tr></thead><tbody>`;
+          r.wrongWords.forEach(w => { const v=vocabularyList.find(x=>x.word===w); html+=`<tr><td style="padding:8px; border:1px solid #fca5a5; font-weight:bold; color:#000000;">${w}</td><td style="padding:8px; border:1px solid #fca5a5; color:#4b5563;">${getBaseTranslation(v?v.translation:'無翻譯')}</td></tr>`; });
+          html += `</tbody></table>`;
+        } else html += `<p style="color:#16a34a; font-weight:bold;">表現極佳！本次無錯單字。</p>`;
+        html += `</div>`;
+      });
+      if (format === 'docx') {
+        const source = 'data:application/vnd.ms-word;charset=utf-8,' + encodeURIComponent("<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>KET 測驗報告</title><style>body{font-family:'Microsoft JhengHei',sans-serif;}</style></head><body>" + html + "</body></html>");
+        const link = document.createElement("a"); link.href=source; link.download=`KET測驗匯出明細_${Date.now()}.doc`; link.click();
+      } else {
+        const opt = {
+          margin: 10,
+          filename: `KET測驗匯出明細_${Date.now()}.pdf`,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2 },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+        const element = document.createElement('div');
+        element.innerHTML = `<div style="font-family:'Microsoft JhengHei',sans-serif; padding:10px; color:#000000;">${html}</div>`;
+        html2pdf().set(opt).from(element).save();
+      }
+    }
+
+    window.showAttemptDetails = (id) => {
+      const a = gameState.rawAttemptHistory.find(x=>x.docId===id); if(!a) return;
+      document.getElementById('attempt-details-content').innerHTML=`<p>得分: ${a.score} | 準確率: ${a.accuracy}% | 時長: ${formatDuration(a.timeTaken)}</p><div class="mt-4"><p class="text-red-400">錯題 (${a.wrongWords?.length||0}):</p><div class="flex gap-2 flex-wrap">${(a.wrongWords||[]).map(w=>`<span class="bg-red-900 px-2 rounded">${w}</span>`).join('')}</div></div>`;
+      document.getElementById('attempt-details-modal').classList.remove('hidden','opacity-0');
+    };
+    
+    function renderWrongWordsSection(att) {
+      const el=document.getElementById('weak-words-list'); el.innerHTML=''; const m={};
+      att.forEach(a=> { if(a.wrongWords) a.wrongWords.forEach(w=> m[w]=(m[w]||0)+1); });
+      // 這裡移除了原本的 .slice(0, 5)，讓陣列包含所有答錯的單字
+      const allSorted=Object.entries(m).sort((a,b)=>b[1]-a[1]);
+      if(allSorted.length===0) { el.innerHTML='<li class="text-gray-500 text-center py-10">無答錯記錄！</li>'; return; }
+      allSorted.forEach(([w,c]) => { const v=vocabularyList.find(x=>x.word===w); el.innerHTML+=`<li class="bg-gray-950/40 border border-gray-800 p-4 rounded-2xl flex justify-between"><div class="space-y-1"><p class="text-red-400 font-bold uppercase">${w}</p><p class="text-xs text-gray-400">${getBaseTranslation(v?v.translation:'')}</p></div><span class="text-red-300 bg-red-900/50 px-2 py-1 rounded text-xs">錯 ${c} 次</span></li>`; });
+    }
+
+    let trendChartInstance=null;
+    function renderAdminTrendChart(att) {
+      const ctx=document.getElementById('score-trend-chart'); if(!ctx)return;
+      const sorted=[...att].sort((a,b)=>a.timestamp-b.timestamp);
+      if(trendChartInstance) trendChartInstance.destroy();
+      trendChartInstance = new Chart(ctx, { 
+        type:'line', 
+        data:{ 
+          labels:sorted.map(a=>{const d=new Date(a.timestamp); return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;}), 
+          datasets:[
+            {label:'分數',data:sorted.map(a=>a.score),borderColor:'#8b5cf6',tension:0.3, yAxisID: 'y'},
+            {label:'答對率(%)',data:sorted.map(a=>a.accuracy),borderColor:'#10b981',tension:0.1, yAxisID: 'y1'}
+          ] 
+        }, 
+        options:{
+          responsive:true,
+          maintainAspectRatio:false,
+          scales: {
+            y: {
+              type: 'linear',
+              display: true,
+              position: 'left',
+              title: { display: true, text: '分數', color: '#8b5cf6' }
+            },
+            y1: {
+              type: 'linear',
+              display: true,
+              position: 'right',
+              min: 0,
+              max: 100,
+              title: { display: true, text: '答對率 (%)', color: '#10b981' },
+              grid: { drawOnChartArea: false } // 不重複繪製水平網格線
+            }
+          }
+        } 
+      });
+    }
+
+    document.getElementById('close-details-btn').onclick=()=>document.getElementById('attempt-details-modal').classList.add('hidden');
+    document.getElementById('admin-clear-records-btn').onclick=()=>document.getElementById('clear-confirm-modal').classList.remove('hidden','opacity-0');
+    document.getElementById('cancel-clear-btn').onclick=()=>document.getElementById('clear-confirm-modal').classList.add('hidden');
+    document.getElementById('confirm-clear-btn').onclick=async()=>{ if(!isOfflineMode&&db){ const q=await getDocs(collection(db,'artifacts',appId,'public','data','scores')); await Promise.all(q.docs.map(d=>deleteDoc(d.ref))); } localStorage.removeItem('ket_scores'); document.getElementById('clear-confirm-modal').classList.add('hidden'); loadAdminStatistics(); };
+    document.getElementById('admin-switch-to-game-btn').onclick=()=>{resetGameState();navigateToView('gameplay');};
+    document.getElementById('retry-game-btn').onclick=()=>{resetGameState();navigateToView('gameplay');};
+
+    // --- Start up Process ---
+    if(auth) onAuthStateChanged(auth, u => { isAuthResolved=true; gameState.user=u||null; resolveStartup(); });
+    else { isAuthResolved=true; gameState.user=null; resolveStartup(); }
+
+    document.getElementById('google-login-btn').onclick = async () => {
+      if(isOfflineMode||!auth) { gameState.user={email:adminEmail, displayName:'管理員(離線)'}; resolveStartup(); return; }
+      try{ await signInWithPopup(auth, new GoogleAuthProvider()); }catch(e){ alert("登入受阻，請確保白名單正確，或未在無痕模式。"); }
+    };
+    document.getElementById('logout-btn').onclick=()=>(auth?signOut(auth).then(()=>location.reload()):location.reload());
+    
+    // 初始化啟動點
+    loadExternalVocabulary();
+  </script>
+</body>
+</html>
