@@ -1,0 +1,47 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Check if user is an admin
+    // Note: Assuming admin role is verified via email (e.g. ianw.solar@gmail.com) 
+    // or by reading the user document. Here we allow read/write to users if authenticated, 
+    // but in a real production environment, you should use custom claims.
+    
+    // Users collection
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      // Allow user to create/update their own profile, and allow admin to do anything
+      allow write: if isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // Tasks collection
+    match /tasks/{taskId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated(); // Restrict to admin in production
+    }
+    
+    // Questions collection
+    match /questions/{questionId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated(); // Restrict to admin in production
+    }
+    
+    // Attempts collection
+    match /attempts/{attemptId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+    }
+    
+    // Configs collection
+    match /configs/{configId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated(); // Restrict to admin in production
+    }
+  }
+}
